@@ -3,42 +3,45 @@ from sys import exit
 from random import randint, choice
 from map_generator import generate_biome_map
 
-screen_width, screen_height = 960,640
+screen_width, screen_height = 960,640 #make sure tile_size multiplies into these cleanly
 seed = randint(0,10000)
 
 pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Minecraft 2D')
+clock = pygame.time.Clock()
 
 
 
 #plains, desert, water, snow, mountain, forest
 class Biomes():
     
-    BIOME_COLORS = {
-        0: (0, 105, 148),   # Deep Water
-        1: (0, 150, 200),   # Shallow Water
-        2: (34, 139, 34),   # Grassland
-        3: (0, 100, 0),     # Forest
-        4: (139, 137, 137), # Mountain
-        5: (255, 255, 255), # Snow
+    BIOME_TEXTURES = { #these don't match or make sense rn, change later
+        0: 'graphics/blocks/coral_block_star.png',   # Deep Water
+        1: 'graphics/blocks/sand_ugly.png',   # Shallow Water
+        2: 'graphics/blocks/grass_top.png',        #(34, 139, 34),   # Grassland
+        3: 'graphics/blocks/oak_log_side.png',     # Forest
+        4: 'graphics/blocks/stone_generic.png', # Mountain
+        5: 'graphics/blocks/grass_top.png' # Snow
     }
     
     def __init__(self):
-        self.biome_map = generate_biome_map(screen_width, screen_height, seed)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
+        self.tile_size = 8 
+        tile_width = int(screen_width /self.tile_size) #for making the biome_map proportionally smaller
+        tile_height = int(screen_height /self.tile_size)
+        resolution_scale = int(200/self.tile_size)
+        self.biome_map = generate_biome_map(tile_width, tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
         self.background = pygame.Surface((screen_width, screen_height))
-        #self.tile_size = 
-
+    
         self.render_colors()
 
     def render_colors(self):
-        for y in range (screen_height):
-            for x in range (screen_width):
-                color = Biomes.BIOME_COLORS[self.biome_map[y, x]]
-                #surf = pygame.Surf((1,1))
-                #surf.fill(color)
-                #self.background.blit(surf, (x,y))
-                self.background.set_at((x,y), color)
+        for y in range (int(screen_height/self.tile_size)):
+            for x in range (int(screen_width/self.tile_size)):
+                texture_path = Biomes.BIOME_TEXTURES[self.biome_map[y,x]]    
+                texture_surf = pygame.image.load(texture_path).convert_alpha()
+                scaled_texture_surf = pygame.transform.scale(texture_surf, (self.tile_size, self.tile_size))
+                self.background.blit(scaled_texture_surf, (x *self.tile_size, y *self.tile_size))
 
     def draw_world(self, screen):
         screen.blit(self.background, (0,0))
@@ -56,3 +59,4 @@ while True:
 
     
     pygame.display.update()
+    clock.tick(60)
