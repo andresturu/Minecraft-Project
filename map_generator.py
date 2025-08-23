@@ -1,8 +1,8 @@
 import numpy as np
-
 from noise import pnoise2
 
-def generate_biome_map(width, height, seed = 0, scale=200, octaves=4, persistence=0.5, lacunarity=2.0):
+
+def generate_biome_map(width, height, seed, scale, octaves=4, persistence=0.5, lacunarity=2.0):
     """
     Generates a 2D biome map using Perlin noise.
     
