@@ -9,17 +9,17 @@ def generate_biome_map(width, height, seed, scale, octaves=4, persistence=0.5, l
     Returns:
         biome_map: numpy.ndarray of shape (height, width), integers representing biomes
     """
-    # Define biome thresholds based on noise elevation
+    # Define biome thresholds based on noise elevation, elevation doesn't get higher than 0.6 about?
     def get_biome(elevation):
-        if elevation < -0.25:
+        if elevation < -0.20:  
             return 0  # Deep water
-        elif elevation < -0.1:
-            return 1  # Shallow water
-        elif elevation < 0.1:
+        elif elevation < -0.10:
+            return 1  # Desert
+        elif elevation < 0.10:
             return 2  # Grassland
-        elif elevation < 0.3:
+        elif elevation < 0.20:
             return 3  # Forest
-        elif elevation < 0.5:
+        elif elevation < 0.33:
             return 4  # Mountain
         else:
             return 5  # Snow
@@ -46,4 +46,4 @@ def generate_biome_map(width, height, seed, scale, octaves=4, persistence=0.5, l
             biome_map[y, x] = get_biome(elevation)
     
     #print(biome_map) 
-    return biome_map
+    return biome_map 

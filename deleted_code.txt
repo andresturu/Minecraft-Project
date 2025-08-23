@@ -1,0 +1,8 @@
+elif self.biome_map[y,x]== 5:
+    for i in range(2):
+        texture_path = Biomes.BIOME_TEXTURES[self.biome_map[y,x]][i]    
+        texture_surf = pygame.image.load(texture_path).convert_alpha()
+        scaled_texture_surf = pygame.transform.scale(texture_surf, (self.tile_size, self.tile_size))
+        self.background.blit(scaled_texture_surf, (x *self.tile_size, y *self.tile_size))
+
+#5: ['graphics/blocks/snow.png', 'graphics/blocks/snow_tree.png'] # Just worry about trees later
