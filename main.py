@@ -3,7 +3,9 @@ from sys import exit
 from random import randint, choice
 from map_generator import generate_biome_map
 
-screen_width, screen_height = 2*960 ,2 *640  #make sure tile_size multiplies into these cleanly
+
+screen_width, screen_height = 1920 , 1280  #make sure tile_size multiplies into these cleanly
+biome_map_scalar =3 #biome_map will be x times as large as regular map, to allow scrolling background
 seed = randint(0,10000)
 
 pygame.init()
@@ -19,50 +21,67 @@ clock = pygame.time.Clock()
 #plains, desert, water, snow, mountain, forest
 class Biomes(): #making it inherit from sprite class is overkill unless I want to make each specific tile interactable with the player
     
+    tile_size = 32
+
     BIOME_TEXTURES = { #these don't match or make sense rn, change later
-        0: ['graphics/water/deep_water_1.png', 'graphics/water/deep_water_2.png'],   # Deep Water, want to alternate between these two
-        1: 'graphics/blocks/desert_block.png',   # Desert
-        2: 'graphics/blocks/grass_top.png',      # Grassland
-        3: 'graphics/blocks/oak_log_side.png',     # Forest
-        4: 'graphics/blocks/stone_generic.png', # Mountain
-        5: 'graphics/blocks/snow.png' #Snow
+        0: [pygame.transform.scale(pygame.image.load('graphics/water/deep_water_1.png').convert_alpha(), (tile_size, tile_size)), pygame.transform.scale(pygame.image.load('graphics/water/deep_water_2.png').convert_alpha(), (tile_size, tile_size)) ],   # Deep Water, want to alternate between these two
+        1: pygame.transform.scale(pygame.image.load('graphics/blocks/desert_block.png').convert_alpha(), (tile_size, tile_size)),   # Desert
+        2: pygame.transform.scale(pygame.image.load('graphics/blocks/grass_top.png').convert_alpha(), (tile_size, tile_size)),      # Grassland
+        3: pygame.transform.scale(pygame.image.load('graphics/blocks/oak_log_side.png').convert_alpha(), (tile_size, tile_size)),     # Forest
+        4: pygame.transform.scale(pygame.image.load('graphics/blocks/stone_generic.png').convert_alpha(), (tile_size, tile_size)), # Mountain
+        5: pygame.transform.scale(pygame.image.load('graphics/blocks/snow.png').convert_alpha(), (tile_size, tile_size)) #Snow
     }
     
     def __init__(self):
-        self.tile_size = 32
-        tile_width = int(screen_width /self.tile_size) #for making the biome_map proportionally smaller
-        tile_height = int(screen_height /self.tile_size)
-        resolution_scale = int(1200/self.tile_size) #make this larger to see smoother/larger biome regions
+        tile_width = screen_width //Biomes.tile_size #for making the biome_map proportionally smaller
+        tile_height = screen_height //Biomes.tile_size
+        resolution_scale = 1200//Biomes.tile_size #make this larger to see smoother/larger biome regions
         self.water_index = 0
-        self.biome_map = generate_biome_map(tile_width, tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
+        
+        self.biome_map = generate_biome_map(biome_map_scalar * tile_width,biome_map_scalar * tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
+        print(self.biome_map.shape)
         self.background = pygame.Surface((screen_width, screen_height))
 
-    
-        self.render_images()
+        #scroll_x should always be on left edge of vsisible game screen, scroll_y on the top edge of visible game screen
+        self.scroll_x = int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size) #calculates scroll_x 
+        self.scroll_y = int(0.5 *(biome_map_scalar * screen_height - screen_height) / Biomes.tile_size) #calculates scroll_y
 
-    def render_water(self, screen):
-        for y in range (int(screen_height/self.tile_size)):
-            for x in range (int(screen_width/self.tile_size)):
-                if self.biome_map[y,x] == 0: 
-                    texture_path = Biomes.BIOME_TEXTURES[self.biome_map[y,x]][int(self.water_index)]    
-                    texture_surf = pygame.image.load(texture_path).convert_alpha()
-                    scaled_texture_surf = pygame.transform.scale(texture_surf, (self.tile_size, self.tile_size))
-                    screen.blit(scaled_texture_surf, (x *self.tile_size, y *self.tile_size))
 
+    def get_player_input(self):
+        keys = pygame.key.get_pressed()
+        
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.scroll_x += -1
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.scroll_x += 1
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            self.scroll_y += -1
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.scroll_y += 1
 
     def render_images(self):
-        for y in range (int(screen_height/self.tile_size)):
-            for x in range (int(screen_width/self.tile_size)):
-                
-                if self.biome_map[y,x] == 0: 
+
+        for y in range (screen_height//Biomes.tile_size):
+            for x in range (screen_width//Biomes.tile_size):
+
+                if self.biome_map[self.scroll_y+y,self.scroll_x +x] == 0: 
                     continue #skips this if statement, the tile is meant to be a water square
                 else:
-                    texture_path = Biomes.BIOME_TEXTURES[self.biome_map[y,x]]  
-                    texture_surf = pygame.image.load(texture_path).convert_alpha()
-                    scaled_texture_surf = pygame.transform.scale(texture_surf, (self.tile_size, self.tile_size))
-                    self.background.blit(scaled_texture_surf, (x *self.tile_size, y *self.tile_size))
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y ,self.scroll_x +x]]  
+                    self.background.blit(scaled_texture_surf, (x *Biomes.tile_size, y *Biomes.tile_size))
+   
+    def render_water(self, screen):
+
+        for y in range (screen_height//Biomes.tile_size):
+            for x in range (screen_width//Biomes.tile_size):     
+                if self.biome_map[self.scroll_y + y,self.scroll_x +x] == 0: 
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y,self.scroll_x +x]][int(self.water_index)]    
+                    screen.blit(scaled_texture_surf, (x *Biomes.tile_size, y *Biomes.tile_size))
+        
 
     def draw_world(self, screen):
+        self.get_player_input()
+        self.render_images()
         screen.blit(self.background, (0,0))
 
 class Player(pygame.sprite.Sprite):
@@ -88,16 +107,6 @@ class Player(pygame.sprite.Sprite):
         self.image = self.stand_still
         self.rect = self.image.get_rect(center = (screen_width/2, screen_height/2))
     
-    def do_movement(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.rect.x -= 2
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.rect.x +=2
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.rect.y -=2
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.rect.y  +=2
        
 
     def find__and_draw_health(self, screen): #don't put this into update() method because it's drawing, not logic
@@ -108,12 +117,13 @@ class Player(pygame.sprite.Sprite):
     # def animation_state(): #standing, walking, swimming, getting hit, etc.
 
     def update(self):
-        self.do_movement()
+        pass
+        #self.do_movement()
 
-def collision():
-    if pygame.sprite.spritecollide(player.sprite, mob_group, False):
-        return True
-    else: return False
+# def collision():
+#     if pygame.sprite.spritecollide(player.sprite, mob_group, False):
+#         return True
+#     else: return False
 
 world = Biomes()
 
@@ -141,7 +151,7 @@ while True:
 
     #Player
     #player.find_and_draw_health(screen)
-    player.update() #calls the update() method for player
+    #player.update() #calls the update() method for player
     player_group.draw(screen) #draws player sprite .image at its .rect
 
     #Hostile Mobs
