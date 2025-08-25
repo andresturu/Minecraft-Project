@@ -5,7 +5,7 @@ from map_generator import generate_biome_map
 
 
 screen_width, screen_height = 1920 , 1280  #make sure tile_size multiplies into these cleanly
-biome_map_scalar =3 #biome_map will be x times as large as regular map, to allow scrolling background
+biome_map_scalar =8 #biome_map will be x times as large as regular map, to allow scrolling background
 seed = randint(0,10000)
 
 pygame.init()
@@ -14,7 +14,8 @@ pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
 
 # Things to do?
-# have screen zoom in on part of the map, then it renders more as you walk further
+# Add like a boundary to the edges to show that the player can't physically go further
+# Add plants to biomes
 # add enemy damage to health, and combat
 
 
@@ -22,6 +23,9 @@ clock = pygame.time.Clock()
 class Biomes(): #making it inherit from sprite class is overkill unless I want to make each specific tile interactable with the player
     
     tile_size = 32
+    tile_width = screen_width //tile_size
+    tile_height = screen_height //tile_size
+
 
     BIOME_TEXTURES = { #these don't match or make sense rn, change later
         0: [pygame.transform.scale(pygame.image.load('graphics/water/deep_water_1.png').convert_alpha(), (tile_size, tile_size)), pygame.transform.scale(pygame.image.load('graphics/water/deep_water_2.png').convert_alpha(), (tile_size, tile_size)) ],   # Deep Water, want to alternate between these two
@@ -33,12 +37,10 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
     }
     
     def __init__(self):
-        tile_width = screen_width //Biomes.tile_size #for making the biome_map proportionally smaller
-        tile_height = screen_height //Biomes.tile_size
-        resolution_scale = 1200//Biomes.tile_size #make this larger to see smoother/larger biome regions
+        resolution_scale = 3200//Biomes.tile_size #make this larger to see smoother/larger biome regions
         self.water_index = 0
         
-        self.biome_map = generate_biome_map(biome_map_scalar * tile_width,biome_map_scalar * tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
+        self.biome_map = generate_biome_map(biome_map_scalar * Biomes.tile_width,biome_map_scalar * Biomes.tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
         print(self.biome_map.shape)
         self.background = pygame.Surface((screen_width, screen_height))
 
@@ -46,24 +48,38 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.scroll_x = int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size) #calculates scroll_x 
         self.scroll_y = int(0.5 *(biome_map_scalar * screen_height - screen_height) / Biomes.tile_size) #calculates scroll_y
 
+        self.scroll_x_max = biome_map_scalar * Biomes.tile_width - Biomes.tile_width #max of how far the player can explore
+        self.scroll_y_max = biome_map_scalar * Biomes.tile_height - Biomes.tile_height
+        
+        self.scroll_x_float = float(self.scroll_x)
+        self.scroll_y_float = float(self.scroll_y)
+
 
     def get_player_input(self):
         keys = pygame.key.get_pressed()
         
+        scroll_speed = 0.4#change this based on if in water or not
+
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.scroll_x += -1
+            self.scroll_x_float -= scroll_speed
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.scroll_x += 1
+            self.scroll_x_float += scroll_speed
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.scroll_y += -1
+            self.scroll_y_float -= scroll_speed
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.scroll_y += 1
+            self.scroll_y_float += scroll_speed
+
+        self.scroll_x = round(self.scroll_x_float) #round is smoother than int
+        self.scroll_y = round(self.scroll_y_float)
+        
+        self.scroll_x = max(0, min(self.scroll_x_max, self.scroll_x))
+        self.scroll_y = max(0, min(self.scroll_y_max, self.scroll_y))
+      
 
     def render_images(self):
 
-        for y in range (screen_height//Biomes.tile_size):
-            for x in range (screen_width//Biomes.tile_size):
-
+        for y in range (Biomes.tile_height):
+            for x in range (Biomes.tile_width):
                 if self.biome_map[self.scroll_y+y,self.scroll_x +x] == 0: 
                     continue #skips this if statement, the tile is meant to be a water square
                 else:
@@ -72,8 +88,8 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
    
     def render_water(self, screen):
 
-        for y in range (screen_height//Biomes.tile_size):
-            for x in range (screen_width//Biomes.tile_size):     
+        for y in range (Biomes.tile_height):
+            for x in range (Biomes.tile_width):     
                 if self.biome_map[self.scroll_y + y,self.scroll_x +x] == 0: 
                     scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y,self.scroll_x +x]][int(self.water_index)]    
                     screen.blit(scaled_texture_surf, (x *Biomes.tile_size, y *Biomes.tile_size))
