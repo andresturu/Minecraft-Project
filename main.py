@@ -16,7 +16,10 @@ clock = pygame.time.Clock()
 # Things to do?
 # Add like a boundary to the edges to show that the player can't physically go further
 # Add plants to biomes
+# Add mobs (friendly and hostile)
+# Add health bar
 # add enemy damage to health, and combat
+# Add sound fx and music
 
 
 #plains, desert, water, snow, mountain, forest
@@ -59,7 +62,7 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
     def get_player_input(self):
         keys = pygame.key.get_pressed()
         
-        scroll_speed = 0.5#controls how fast world scrolls, could change this based on if in water or not
+        scroll_speed = 0.2#controls how fast world scrolls, could change this based on if in water or not
         
         dx, dy = 0,0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -84,7 +87,7 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.scroll_x = int(self.scroll_x_float) #int truncates down
         self.scroll_y = int(self.scroll_y_float)
         
-        self.tile_offset_x = self.scroll_x_float %1 * Biomes.tile_size #get number of pixels offsetted
+        self.tile_offset_x = self.scroll_x_float %1 * Biomes.tile_size #get number of pixels offsetted, to prevent jerkiness when moving diagonally
         self.tile_offset_y = self.scroll_y_float %1 *Biomes.tile_size
 
 
