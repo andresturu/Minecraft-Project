@@ -121,8 +121,27 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.render_images()
         screen.blit(self.background, (0,0))
 
+def load_and_prep_player_image(path):
+    image = pygame.image.load(path).convert()
+    image = pygame.transform.scale(image, (64,64))
+    image.set_colorkey((109,170,44)) 
+    return image
+
 class Player(pygame.sprite.Sprite):
     
+    player_stills = {
+        'west'  : load_and_prep_player_image('graphics/player/player_still_west.png'), 
+        'east'  : load_and_prep_player_image('graphics/player/player_still_east.png'), 
+        'north' : load_and_prep_player_image('graphics/player/player_still_north.png'), 
+        'south' : load_and_prep_player_image('graphics/player/player_still_south.png') 
+    }
+    player_walks = {
+        'west' : [load_and_prep_player_image('graphics/player/player_walks_west1.png') , load_and_prep_player_image('graphics/player/player_walks_west2.png') ],
+        'east' : [load_and_prep_player_image('graphics/player/player_walks_east1.png') , load_and_prep_player_image('graphics/player/player_walks_east2.png') ],
+        'north': [load_and_prep_player_image('graphics/player/player_walks_north1.png') , load_and_prep_player_image('graphics/player/player_walks_north2.png') ],
+        'south': [load_and_prep_player_image('graphics/player/player_walks_south1.png') , load_and_prep_player_image('graphics/player/player_walks_south2.png') ]
+    }
+
     def __init__(self):
         super().__init__()
         self.health = 10 #num of hearts player gets
@@ -133,15 +152,13 @@ class Player(pygame.sprite.Sprite):
         self.half_heart = pygame.image.load('graphics/player/half_heart.png').convert() #not alpha b/c transparency
         self.half_heart = pygame.transform.scale(self.half_heart, (24,24) )
         self.half_heart.set_colorkey((109,170,44)) 
-        
-        self.stand_still= pygame.image.load('graphics/player/player_still.png').convert() #not alpha
-        self.stand_still = pygame.transform.scale(self.stand_still, (48,48) )
-        self.stand_still.set_colorkey((109,170,44))         
-    #     self.player_walk_1 =
-    #     self.player_walk_2 =
-    #     self.player_walk = [self.player_walk_1, self.player_walk_2]
+         
 
-        self.image = self.stand_still
+        self.walk_index = 0
+        self.direction = 'south'
+
+        self.image = Player.player_stills[self.direction]
+        print(Player.player_stills[self.direction])
         self.rect = self.image.get_rect(center = (screen_width/2, screen_height/2))
     
        
@@ -151,11 +168,33 @@ class Player(pygame.sprite.Sprite):
             self.health -= 0.5 
         
 
-    # def animation_state(): #standing, walking, swimming, getting hit, etc.
+    def animation_state(self): #standing, walking, swimming, getting hit, etc.
+        keys = pygame.key.get_pressed()
+        
+        self.walk_index += 0.1
+        if self.walk_index >= 2: self.walk_index = 0
+
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.image = Player.player_walks['west'][int(self.walk_index)]
+            self.direction = 'west'
+        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.image = Player.player_walks['east'][int(self.walk_index)]
+            self.direction = 'east'
+            print(int(self.walk_index))
+        elif keys[pygame.K_UP] or keys[pygame.K_w]:
+            self.image = Player.player_walks['north'][int(self.walk_index)]
+            self.direction = 'north'
+        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.image = Player.player_walks['south'][int(self.walk_index)]
+            self.direction = 'south'
+        else: #no buttons are pressed
+            self.image = Player.player_stills[self.direction]
+            print('no buttons pressed')
+
 
     def update(self):
-        pass
-        #self.do_movement()
+        self.animation_state()
+
 
 # def collision():
 #     if pygame.sprite.spritecollide(player.sprite, mob_group, False):
@@ -188,7 +227,7 @@ while True:
 
     #Player
     #player.find_and_draw_health(screen)
-    #player.update() #calls the update() method for player
+    player.update() #calls the update() method for player
     player_group.draw(screen) #draws player sprite .image at its .rect
 
     #Hostile Mobs
