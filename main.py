@@ -23,7 +23,7 @@ clock = pygame.time.Clock()
 class Biomes(): #making it inherit from sprite class is overkill unless I want to make each specific tile interactable with the player
     
     tile_size = 32
-    tile_width = screen_width //tile_size
+    tile_width = screen_width //tile_size #width of the visible screen, in tiles
     tile_height = screen_height //tile_size
 
 
@@ -53,28 +53,40 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         
         self.scroll_x_float = float(self.scroll_x)
         self.scroll_y_float = float(self.scroll_y)
-
+        self.tile_offset_x = 0
+        self.tile_offset_y = 0
 
     def get_player_input(self):
         keys = pygame.key.get_pressed()
         
-        scroll_speed = 0.4#change this based on if in water or not
-
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.scroll_x_float -= scroll_speed
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.scroll_x_float += scroll_speed
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.scroll_y_float -= scroll_speed
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.scroll_y_float += scroll_speed
-
-        self.scroll_x = round(self.scroll_x_float) #round is smoother than int
-        self.scroll_y = round(self.scroll_y_float)
+        scroll_speed = 0.5#controls how fast world scrolls, could change this based on if in water or not
         
-        self.scroll_x = max(0, min(self.scroll_x_max, self.scroll_x))
-        self.scroll_y = max(0, min(self.scroll_y_max, self.scroll_y))
-      
+        dx, dy = 0,0
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            dx = -1
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            dx = 1
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            dy = -1
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            dy = 1
+
+        if dx != 0 and dy != 0: #uses pythagorean theorem to "normalize" diagonal movement 
+            dx *= 0.7071
+            dy *= 0.7071
+
+        self.scroll_x_float += dx *scroll_speed
+        self.scroll_y_float +=dy *scroll_speed
+
+        self.scroll_x_float = max(0, min(self.scroll_x_max, self.scroll_x_float))
+        self.scroll_y_float = max(0, min(self.scroll_y_max, self.scroll_y_float))
+        
+        self.scroll_x = int(self.scroll_x_float) #int truncates down
+        self.scroll_y = int(self.scroll_y_float)
+        
+        self.tile_offset_x = self.scroll_x_float %1 * Biomes.tile_size #get number of pixels offsetted
+        self.tile_offset_y = self.scroll_y_float %1 *Biomes.tile_size
+
 
     def render_images(self):
 
@@ -83,16 +95,22 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
                 if self.biome_map[self.scroll_y+y,self.scroll_x +x] == 0: 
                     continue #skips this if statement, the tile is meant to be a water square
                 else:
+                    draw_x = x* Biomes.tile_size - self.tile_offset_x
+                    draw_y = y* Biomes.tile_size - self.tile_offset_y                   
+                    
                     scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y ,self.scroll_x +x]]  
-                    self.background.blit(scaled_texture_surf, (x *Biomes.tile_size, y *Biomes.tile_size))
+                    self.background.blit(scaled_texture_surf, (draw_x, draw_y))
    
     def render_water(self, screen):
 
         for y in range (Biomes.tile_height):
             for x in range (Biomes.tile_width):     
                 if self.biome_map[self.scroll_y + y,self.scroll_x +x] == 0: 
+                    draw_x = x* Biomes.tile_size - self.tile_offset_x
+                    draw_y = y* Biomes.tile_size - self.tile_offset_y 
+                    
                     scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y,self.scroll_x +x]][int(self.water_index)]    
-                    screen.blit(scaled_texture_surf, (x *Biomes.tile_size, y *Biomes.tile_size))
+                    screen.blit(scaled_texture_surf, (draw_x, draw_y))
         
 
     def draw_world(self, screen):
