@@ -2,6 +2,7 @@ import pygame
 from sys import exit
 from random import randint, choice
 from map_generator import generate_biome_map
+from utils import load_and_prep_player_image
 
 
 screen_width, screen_height = 1920 , 1280  #make sure tile_size multiplies into these cleanly
@@ -15,6 +16,7 @@ clock = pygame.time.Clock()
 
 # Things to do?
 # Add like a boundary to the edges to show that the player can't physically go further
+# Fix weird blurry right and bottom edge (probably due to offsetting?)
 # Add plants to biomes
 # Add mobs (friendly and hostile)
 # Add health bar
@@ -121,44 +123,38 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.render_images()
         screen.blit(self.background, (0,0))
 
-def load_and_prep_player_image(path):
-    image = pygame.image.load(path).convert()
-    image = pygame.transform.scale(image, (64,64))
-    image.set_colorkey((109,170,44)) 
-    return image
+# def load_and_prep_player_image(path):
+#     image = pygame.image.load(path).convert()
+#     image = pygame.transform.scale(image, (64,64))
+#     image.set_colorkey((109,170,44)) 
+#     return image
 
 class Player(pygame.sprite.Sprite):
     
     player_stills = {
-        'west'  : load_and_prep_player_image('graphics/player/player_still_west.png'), 
-        'east'  : load_and_prep_player_image('graphics/player/player_still_east.png'), 
-        'north' : load_and_prep_player_image('graphics/player/player_still_north.png'), 
-        'south' : load_and_prep_player_image('graphics/player/player_still_south.png') 
+        'west'  : load_and_prep_player_image('graphics/player/player_still_west.png', (64,64)), 
+        'east'  : load_and_prep_player_image('graphics/player/player_still_east.png', (64,64)), 
+        'north' : load_and_prep_player_image('graphics/player/player_still_north.png', (64,64)), 
+        'south' : load_and_prep_player_image('graphics/player/player_still_south.png', (64,64)) 
     }
     player_walks = {
-        'west' : [load_and_prep_player_image('graphics/player/player_walks_west1.png') , load_and_prep_player_image('graphics/player/player_walks_west2.png') ],
-        'east' : [load_and_prep_player_image('graphics/player/player_walks_east1.png') , load_and_prep_player_image('graphics/player/player_walks_east2.png') ],
-        'north': [load_and_prep_player_image('graphics/player/player_walks_north1.png') , load_and_prep_player_image('graphics/player/player_walks_north2.png') ],
-        'south': [load_and_prep_player_image('graphics/player/player_walks_south1.png') , load_and_prep_player_image('graphics/player/player_walks_south2.png') ]
+        'west' : [load_and_prep_player_image('graphics/player/player_walks_west1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_west2.png', (64,64)) ],
+        'east' : [load_and_prep_player_image('graphics/player/player_walks_east1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_east2.png', (64,64)) ],
+        'north': [load_and_prep_player_image('graphics/player/player_walks_north1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_north2.png', (64,64)) ],
+        'south': [load_and_prep_player_image('graphics/player/player_walks_south1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_south2.png', (64,64)) ]
     }
 
     def __init__(self):
         super().__init__()
-        self.health = 10 #num of hearts player gets
-        self.full_heart = pygame.image.load('graphics/player/full_heart.png').convert() #not alpha becuase of transparency reasons
-        self.full_heart = pygame.transform.scale(self.full_heart, (24,24) )
-        self.full_heart.set_colorkey((109,170,44)) #sets background color to be transparent
         
-        self.half_heart = pygame.image.load('graphics/player/half_heart.png').convert() #not alpha b/c transparency
-        self.half_heart = pygame.transform.scale(self.half_heart, (24,24) )
-        self.half_heart.set_colorkey((109,170,44)) 
-         
+        self.health = 10 #num of hearts player gets
+        self.full_heart = load_and_prep_player_image('graphics/player/full_heart.png', (48,48))
+        self.half_heart = load_and_prep_player_image('graphics/player/half_heart.png', (48,48))     
 
         self.walk_index = 0
         self.direction = 'south'
 
-        self.image = Player.player_stills[self.direction]
-        print(Player.player_stills[self.direction])
+        self.image = Player.player_stills[self.direction] #just the initial surface, this will change later
         self.rect = self.image.get_rect(center = (screen_width/2, screen_height/2))
     
        
@@ -180,7 +176,6 @@ class Player(pygame.sprite.Sprite):
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             self.image = Player.player_walks['east'][int(self.walk_index)]
             self.direction = 'east'
-            print(int(self.walk_index))
         elif keys[pygame.K_UP] or keys[pygame.K_w]:
             self.image = Player.player_walks['north'][int(self.walk_index)]
             self.direction = 'north'
@@ -189,7 +184,6 @@ class Player(pygame.sprite.Sprite):
             self.direction = 'south'
         else: #no buttons are pressed
             self.image = Player.player_stills[self.direction]
-            print('no buttons pressed')
 
 
     def update(self):
@@ -226,13 +220,16 @@ while True:
     
 
     #Player
-    #player.find_and_draw_health(screen)
     player.update() #calls the update() method for player
     player_group.draw(screen) #draws player sprite .image at its .rect
 
     #Hostile Mobs
     #mob_group.update() #calls the update() method for each enemy instance
     #mob_group.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
+
+    screen.blit(player.half_heart, (30,30))
+    screen.blit(player.full_heart, (70,70))
+
 
     pygame.display.update() 
     clock.tick(60)
