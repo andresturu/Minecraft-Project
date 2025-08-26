@@ -209,7 +209,6 @@ while True:
         if event.type == pygame.QUIT:  
             pygame.quit() 
             exit() 
-    
 
 
     # Background
@@ -217,7 +216,7 @@ while True:
     world.water_index += 0.015 
     if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
     world.render_water(screen)
-    
+
 
     #Player
     player.update() #calls the update() method for player
