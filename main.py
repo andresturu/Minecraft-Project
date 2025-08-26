@@ -159,7 +159,7 @@ class Player(pygame.sprite.Sprite):
     
        
 
-    def find__and_draw_health(self, screen): #don't put this into update() method because it's drawing, not logic
+    def find__and_draw_health(self, screen): #put into update() or keep separate?
         if collision():
             self.health -= 0.5 
         
