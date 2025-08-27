@@ -94,27 +94,29 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
 
 
     def render_images(self):
+        perimeter_size = 1 #in tiles, purpose is to create self.background that is slightly larger than the visible screen, to prevent blur caused by offsetting
 
-        for y in range (Biomes.tile_height):
-            for x in range (Biomes.tile_width):
-                if self.biome_map[self.scroll_y+y,self.scroll_x +x] == 0: 
+        for y in range (Biomes.tile_height + perimeter_size):
+            for x in range (Biomes.tile_width + perimeter_size):
+                if self.biome_map[self.scroll_y+y - perimeter_size,self.scroll_x +x -perimeter_size] == 0: 
                     continue #skips this if statement, the tile is meant to be a water square
                 else:
                     draw_x = x* Biomes.tile_size - self.tile_offset_x
                     draw_y = y* Biomes.tile_size - self.tile_offset_y                   
                     
-                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y ,self.scroll_x +x]]  
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y -perimeter_size ,self.scroll_x +x -perimeter_size]]  
                     self.background.blit(scaled_texture_surf, (draw_x, draw_y))
    
     def render_water(self, screen):
+        perimeter_size = 1
 
-        for y in range (Biomes.tile_height):
-            for x in range (Biomes.tile_width):     
-                if self.biome_map[self.scroll_y + y,self.scroll_x +x] == 0: 
+        for y in range (Biomes.tile_height + perimeter_size):
+            for x in range (Biomes.tile_width + perimeter_size):     
+                if self.biome_map[self.scroll_y + y -perimeter_size, self.scroll_x +x - perimeter_size] == 0: 
                     draw_x = x* Biomes.tile_size - self.tile_offset_x
                     draw_y = y* Biomes.tile_size - self.tile_offset_y 
                     
-                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y,self.scroll_x +x]][int(self.water_index)]    
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y - perimeter_size,self.scroll_x +x - perimeter_size]][int(self.water_index)]    
                     screen.blit(scaled_texture_surf, (draw_x, draw_y))
         
 
