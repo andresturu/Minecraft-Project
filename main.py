@@ -6,7 +6,7 @@ from utils import load_and_prep_player_image
 
 
 screen_width, screen_height = 1920 , 1280  #make sure tile_size multiplies into these cleanly
-biome_map_scalar =8 #biome_map will be x times as large as regular map, to allow scrolling background
+biome_map_scalar =4 #biome_map will be x times as large as regular map, to allow scrolling background
 seed = randint(0,10000)
 
 pygame.init()
@@ -15,8 +15,7 @@ pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
 
 # Things to do?
-# Add like a boundary to the edges to show that the player can't physically go further
-# Fix weird blurry right and bottom edge (probably due to offsetting?)
+# 
 # Add plants to biomes
 # Add mobs (friendly and hostile)
 # Add health bar
@@ -46,15 +45,14 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.water_index = 0
         
         self.biome_map = generate_biome_map(biome_map_scalar * Biomes.tile_width,biome_map_scalar * Biomes.tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
-        print(self.biome_map.shape)
         self.background = pygame.Surface((screen_width, screen_height))
 
         #scroll_x should always be on left edge of vsisible game screen, scroll_y on the top edge of visible game screen
         self.scroll_x = int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size) #calculates scroll_x 
         self.scroll_y = int(0.5 *(biome_map_scalar * screen_height - screen_height) / Biomes.tile_size) #calculates scroll_y
 
-        self.scroll_x_max = biome_map_scalar * Biomes.tile_width - Biomes.tile_width #max of how far the player can explore
-        self.scroll_y_max = biome_map_scalar * Biomes.tile_height - Biomes.tile_height
+        self.scroll_x_max = biome_map_scalar * Biomes.tile_width - Biomes.tile_width - 1 # max of how far the player can explore
+        self.scroll_y_max = biome_map_scalar * Biomes.tile_height - Biomes.tile_height - 1 # minus one accounts for the extra 1 tile of perimeter width and height
         
         self.scroll_x_float = float(self.scroll_x)
         self.scroll_y_float = float(self.scroll_y)
@@ -83,8 +81,8 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.scroll_x_float += dx *scroll_speed
         self.scroll_y_float +=dy *scroll_speed
 
-        self.scroll_x_float = max(0, min(self.scroll_x_max, self.scroll_x_float))
-        self.scroll_y_float = max(0, min(self.scroll_y_max, self.scroll_y_float))
+        self.scroll_x_float = max(0, min(self.scroll_x_max, self.scroll_x_float)) 
+        self.scroll_y_float = max(0, min(self.scroll_y_max, self.scroll_y_float)) 
         
         self.scroll_x = int(self.scroll_x_float) #int truncates down
         self.scroll_y = int(self.scroll_y_float)
@@ -98,26 +96,32 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
 
         for y in range (Biomes.tile_height + perimeter_size):
             for x in range (Biomes.tile_width + perimeter_size):
-                if self.biome_map[self.scroll_y+y - perimeter_size,self.scroll_x +x -perimeter_size] == 0: 
-                    continue #skips this if statement, the tile is meant to be a water square
-                else:
-                    draw_x = x* Biomes.tile_size - self.tile_offset_x
-                    draw_y = y* Biomes.tile_size - self.tile_offset_y                   
+                biome_id = self.biome_map[self.scroll_y+y - perimeter_size,self.scroll_x +x -perimeter_size]
+                
+                draw_x = x* Biomes.tile_size - self.tile_offset_x
+                draw_y = y* Biomes.tile_size - self.tile_offset_y   
+
+                if biome_id == 0: 
                     
-                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y -perimeter_size ,self.scroll_x +x -perimeter_size]]  
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id][int(self.water_index)]    
+                    self.background.blit(scaled_texture_surf, (draw_x, draw_y))
+                    continue #skips this if statement, the tile is meant to be a water square
+                else:                
+                    
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id]  
                     self.background.blit(scaled_texture_surf, (draw_x, draw_y))
    
-    def render_water(self, screen):
-        perimeter_size = 1
+    # def render_water(self, screen):
+    #     perimeter_size = 1
 
-        for y in range (Biomes.tile_height + perimeter_size):
-            for x in range (Biomes.tile_width + perimeter_size):     
-                if self.biome_map[self.scroll_y + y -perimeter_size, self.scroll_x +x - perimeter_size] == 0: 
-                    draw_x = x* Biomes.tile_size - self.tile_offset_x
-                    draw_y = y* Biomes.tile_size - self.tile_offset_y 
+    #     for y in range (Biomes.tile_height + perimeter_size):
+    #         for x in range (Biomes.tile_width + perimeter_size):     
+    #             if self.biome_map[self.scroll_y + y -perimeter_size, self.scroll_x +x - perimeter_size] == 0: 
+    #                 draw_x = x* Biomes.tile_size - self.tile_offset_x
+    #                 draw_y = y* Biomes.tile_size - self.tile_offset_y 
                     
-                    scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y - perimeter_size,self.scroll_x +x - perimeter_size]][int(self.water_index)]    
-                    screen.blit(scaled_texture_surf, (draw_x, draw_y))
+    #                 scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y - perimeter_size,self.scroll_x +x - perimeter_size]][int(self.water_index)]    
+    #                 screen.blit(scaled_texture_surf, (draw_x, draw_y))
         
 
     def draw_world(self, screen):
@@ -217,7 +221,7 @@ while True:
     world.draw_world(screen)
     world.water_index += 0.015 
     if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
-    world.render_water(screen)
+    #world.render_water(screen)
 
 
     #Player
