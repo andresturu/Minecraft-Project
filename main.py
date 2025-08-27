@@ -15,12 +15,13 @@ pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
 
 # Things to do?
-# 
+# #change forest block to be nicer
 # Add plants to biomes
 # Add mobs (friendly and hostile)
 # Add health bar
 # add enemy damage to health, and combat
 # Add sound fx and music
+# have the player set their seed
 
 
 #plains, desert, water, snow, mountain, forest
@@ -41,11 +42,17 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
     }
     
     def __init__(self):
-        resolution_scale = 3200//Biomes.tile_size #make this larger to see smoother/larger biome regions
+        self.resolution_scale = 3200//Biomes.tile_size #make this larger to see smoother/larger biome regions
         self.water_index = 0
         
-        self.biome_map = generate_biome_map(biome_map_scalar * Biomes.tile_width,biome_map_scalar * Biomes.tile_height, seed, resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
-        self.background = pygame.Surface((screen_width, screen_height))
+        self.biome_map = generate_biome_map(biome_map_scalar * Biomes.tile_width,biome_map_scalar * Biomes.tile_height, seed, self.resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
+        self.static_background =  self.create_static_layer()    
+        
+        self.static_background_draw_x = -(int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size)) #in tiles
+        self.static_background_draw_y = -(int(0.5 *(biome_map_scalar * screen_height - screen_height) / Biomes.tile_size))
+        self.static_background_draw_x_min = -(biome_map_scalar * Biomes.tile_width - Biomes.tile_width) +1
+        self.static_background_draw_y_min = -(biome_map_scalar * Biomes.tile_height - Biomes.tile_height) +1
+    
 
         #scroll_x should always be on left edge of vsisible game screen, scroll_y on the top edge of visible game screen
         self.scroll_x = int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size) #calculates scroll_x 
@@ -78,7 +85,13 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
             dx *= 0.7071
             dy *= 0.7071
 
-        self.scroll_x_float += dx *scroll_speed
+        self.static_background_draw_x -= dx * scroll_speed # for controlling static terrain
+        self.static_background_draw_y -= dy * scroll_speed # 
+
+        self.static_background_draw_x = min(0, max(self.static_background_draw_x, self.static_background_draw_x_min)) 
+        self.static_background_draw_y = min(0, max(self.static_background_draw_y, self.static_background_draw_y_min))
+
+        self.scroll_x_float += dx *scroll_speed #for controlling changing terrain(water)
         self.scroll_y_float +=dy *scroll_speed
 
         self.scroll_x_float = max(0, min(self.scroll_x_max, self.scroll_x_float)) 
@@ -90,50 +103,73 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.tile_offset_x = self.scroll_x_float %1 * Biomes.tile_size #get number of pixels offsetted, to prevent jerkiness when moving diagonally
         self.tile_offset_y = self.scroll_y_float %1 *Biomes.tile_size
 
-
-    def render_images(self):
-        perimeter_size = 1 #in tiles, purpose is to create self.background that is slightly larger than the visible screen, to prevent blur caused by offsetting
-
-        for y in range (Biomes.tile_height + perimeter_size):
-            for x in range (Biomes.tile_width + perimeter_size):
-                biome_id = self.biome_map[self.scroll_y+y - perimeter_size,self.scroll_x +x -perimeter_size]
+    def create_static_layer(self):
+        #no need for offsetting for blur, as the background is already completely rendered
+        static_background = pygame.Surface((biome_map_scalar * Biomes.tile_width* Biomes.tile_size, biome_map_scalar * Biomes.tile_height * Biomes.tile_size))
+        
+        for y in range (biome_map_scalar * Biomes.tile_height):
+            for x in range(biome_map_scalar * Biomes.tile_width):
                 
-                draw_x = x* Biomes.tile_size - self.tile_offset_x
-                draw_y = y* Biomes.tile_size - self.tile_offset_y   
+                
 
-                if biome_id == 0: 
+                biome_id = self.biome_map[y, x]
+                
+                if biome_id == 0:
+                    continue
+                else: 
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id]
+                    static_background.blit(scaled_texture_surf, (x * Biomes.tile_size,y * Biomes.tile_size))
+        return static_background
+
+        
+    #def render_images(self):
+    #     self.perimeter_size = 1 #in tiles, purpose is to create self.background that is slightly larger than the visible screen, to prevent blur caused by offsetting
+
+    #     for y in range (Biomes.tile_height + self.perimeter_size):
+    #         for x in range (Biomes.tile_width + self.perimeter_size):
+    #             biome_id = self.biome_map[self.scroll_y+y - self.perimeter_size,self.scroll_x +x - self.perimeter_size]
+                
+    #             draw_x = x* Biomes.tile_size - self.tile_offset_x
+    #             draw_y = y* Biomes.tile_size - self.tile_offset_y   
+
+    #             if biome_id == 0: 
                     
-                    scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id][int(self.water_index)]    
-                    self.background.blit(scaled_texture_surf, (draw_x, draw_y))
-                    continue #skips this if statement, the tile is meant to be a water square
-                else:                
+    #                 scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id][int(self.water_index)]    
+    #                 self.background.blit(scaled_texture_surf, (draw_x, draw_y))
+    #                 continue #skips this if statement, the tile is meant to be a water square
+    #             else:                
                     
-                    scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id]  
-                    self.background.blit(scaled_texture_surf, (draw_x, draw_y))
+    #                 scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id]  
+    #                 self.background.blit(scaled_texture_surf, (draw_x, draw_y))
+        pass
    
-    # def render_water(self, screen):
-    #     perimeter_size = 1
+    def render_static_layer(self, screen): 
+        screen.blit(self.static_background, (self.static_background_draw_x * Biomes.tile_size, self.static_background_draw_y * Biomes.tile_size))
 
-    #     for y in range (Biomes.tile_height + perimeter_size):
-    #         for x in range (Biomes.tile_width + perimeter_size):     
-    #             if self.biome_map[self.scroll_y + y -perimeter_size, self.scroll_x +x - perimeter_size] == 0: 
-    #                 draw_x = x* Biomes.tile_size - self.tile_offset_x
-    #                 draw_y = y* Biomes.tile_size - self.tile_offset_y 
-                    
-    #                 scaled_texture_surf = Biomes.BIOME_TEXTURES[self.biome_map[self.scroll_y +y - perimeter_size,self.scroll_x +x - perimeter_size]][int(self.water_index)]    
-    #                 screen.blit(scaled_texture_surf, (draw_x, draw_y))
+
+    def render_water(self, screen):
+        perimeter_size = 1 #means one tile of space all around visible screen
+
+        for y in range (Biomes.tile_height + 2 *perimeter_size ):
+            for x in range (Biomes.tile_width + 2 *perimeter_size):     
+                biome_id = self.biome_map[self.scroll_y+y - perimeter_size ,self.scroll_x +x - perimeter_size ]
+
+                draw_x = (x - perimeter_size) * Biomes.tile_size  - self.tile_offset_x
+                draw_y = (y - perimeter_size) * Biomes.tile_size - self.tile_offset_y 
+
+            
+                if biome_id == 0: 
+
+                    scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id][int(self.water_index)]    
+                    screen.blit(scaled_texture_surf, (draw_x, draw_y))
         
 
     def draw_world(self, screen):
         self.get_player_input()
-        self.render_images()
-        screen.blit(self.background, (0,0))
+        self.render_static_layer(screen)
+        self.render_water(screen)
 
-# def load_and_prep_player_image(path):
-#     image = pygame.image.load(path).convert()
-#     image = pygame.transform.scale(image, (64,64))
-#     image.set_colorkey((109,170,44)) 
-#     return image
+
 
 class Player(pygame.sprite.Sprite):
     
@@ -218,12 +254,13 @@ while True:
 
 
     # Background
-    world.draw_world(screen)
     world.water_index += 0.015 
     if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
-    #world.render_water(screen)
+    world.draw_world(screen)
 
 
+
+  
     #Player
     player.update() #calls the update() method for player
     player_group.draw(screen) #draws player sprite .image at its .rect
@@ -232,8 +269,8 @@ while True:
     #mob_group.update() #calls the update() method for each enemy instance
     #mob_group.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
 
-    screen.blit(player.half_heart, (30,30))
-    screen.blit(player.full_heart, (70,70))
+    # screen.blit(player.half_heart, (30,30))
+    # screen.blit(player.full_heart, (70,70))
 
 
     pygame.display.update() 
