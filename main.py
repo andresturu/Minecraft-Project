@@ -12,7 +12,7 @@ pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
-game_state = 0 #starts in world creation screen
+game_state = 2 #starts in world creation screen
 game_font_large = pygame.font.Font('font/minecraft_font.ttf', 100)
 game_font_medium = pygame.font.Font('font/minecraft_font.ttf', 30)
 game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
@@ -246,7 +246,7 @@ message1 = game_font_small.render(('Seed for the World Generator'), False, gray)
 message1_rect = message1.get_rect(midleft = (screen_width/2 - 244, screen_height/2 +76))
 message2 = game_font_small.render('Leave blank for a random seed', False, gray)
 message2_rect = message2.get_rect(midleft = (screen_width/2 - 244, screen_height/2 + 164))
-seed_str = '_'
+seed_str = ''
 underscore_index = 0
 
 
@@ -268,35 +268,35 @@ while True:
             pygame.quit() 
             exit() 
 
-        if game_state == 0:
+        if game_state == 0: #create world screen
             keys = pygame.key.get_pressed()
             
-            #remove underscore if it is present
-            if seed_str and seed_str[-1] == '_':
-                seed_str = seed_str[ :-1] #gets rid of last character
+            # #remove underscore if it is present
+            # if seed_str and seed_str[-1] == '_':
+            #     seed_str = seed_str[ :-1] #gets rid of last character
 
             
-            #here add numbers to seed_str
-            
-            #here we update seed_str, maing sure to splice '_' at the end 
-            #in drawing below, we draw the seed_text based on seed_str
+            # #animating the 'blinking' underscore
+            # underscore_index += 0.2 
+            # if int(underscore_index) >=2: underscore_index = 0
+            # if int(underscore_index) < 1:
+            #     seed_str += '_'
 
-            #animating the 'blinking' underscore
-            underscore_index += 0.2 
-            if int(underscore_index) >=2: underscore_index = 0
-            if int(underscore_index) < 1:
-                seed_str += '_'
-
-
-            if keys[pygame.K_RETURN] == True: 
-                if len(seed_str) ==1: #checks if player has left the seed blank
-                    seed = randint(1,10000)
-                else:
-                    seed = int(seed_str)
+            if event.type == pygame.KEYDOWN: #doing this makes sure only one character typed at a time (of same character )
+                #process the player typing, or deleting the seed
                 
-                world = Biomes(seed) #initialize world once I have the seed
-                game_state = 1
+                if event.key == pygame.K_RETURN: 
+                    if len(seed_str) ==0: #checks if player has left the seed blank
+                        seed = randint(1,10000)
+                    else:
+                        seed = int(seed_str)
                     
+                    world = Biomes(seed) #initialize world once I have the seed
+                    game_state = 1
+    
+        if game_state == 1:
+            #put a timer that spawns mobs every so often
+            pass
 
                 
 
