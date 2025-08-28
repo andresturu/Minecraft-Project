@@ -227,7 +227,7 @@ class Hostile_mobs(pygame.sprite.Sprite):
 #     else: return False
 
 #Game state == 2
-frame_count = 0
+
 game_over = game_font_large.render('GAME OVER', False, (222,4,4))
 game_over_rect = game_over.get_rect(center = (screen_width/2, screen_height/2))
 
@@ -246,7 +246,9 @@ message1 = game_font_small.render(('Seed for the World Generator'), False, gray)
 message1_rect = message1.get_rect(midleft = (screen_width/2 - 244, screen_height/2 +76))
 message2 = game_font_small.render('Leave blank for a random seed', False, gray)
 message2_rect = message2.get_rect(midleft = (screen_width/2 - 244, screen_height/2 + 164))
-seed_str = ''
+seed_str = '_'
+seed_max = 1000000
+seed_min = 0
 underscore_index = 0
 
 
@@ -262,37 +264,43 @@ player_group = pygame.sprite.GroupSingle(player) #add the sprite to the GroupSin
 
 hostile_mobs = pygame.sprite.Group() #creates an empty "bucket" that holds sprites
 
+last_updated_time = pygame.time.get_ticks()
 while True:
+    current_time = pygame.time.get_ticks()
+    
     for event in pygame.event.get(): 
         if event.type == pygame.QUIT:  
             pygame.quit() 
             exit() 
 
         if game_state == 0: #create world screen
-            keys = pygame.key.get_pressed()
-            
-            # #remove underscore if it is present
-            # if seed_str and seed_str[-1] == '_':
-            #     seed_str = seed_str[ :-1] #gets rid of last character
-
-            
-            # #animating the 'blinking' underscore
-            # underscore_index += 0.2 
-            # if int(underscore_index) >=2: underscore_index = 0
-            # if int(underscore_index) < 1:
-            #     seed_str += '_'
-
             if event.type == pygame.KEYDOWN: #doing this makes sure only one character typed at a time (of same character )
-                #process the player typing, or deleting the seed
                 
-                if event.key == pygame.K_RETURN: 
-                    if len(seed_str) ==0: #checks if player has left the seed blank
-                        seed = randint(1,10000)
+                if event.unicode.isdigit(): # event.unicode returns string representation (a single character) of key that was pressed for example 'a' or '9, isdigit() is a Python method that checks if all characters in string are digits (0-9)
+                    if seed_str and seed_str[-1] == '_':
+                        seed_str = seed_str[:-1]
+                        seed_str += event.unicode
+                        seed_str += '_'
                     else:
-                        seed = int(seed_str)
+                        seed_str += event.unicode
+                
+                if event.key == pygame.K_BACKSPACE: 
+                    if seed_str and seed_str[-1] == '_':
+                        seed_str = seed_str[:-1]
+                    seed_str = seed_str[ : -1]
+
+                if event.key == pygame.K_RETURN: 
+                    clean_seed_str = seed_str.rstrip('_')
+                    if len(clean_seed_str) ==0: #checks if player has left the seed blank
+                        seed = randint(0,seed_max)
+                    else:
+                        seed = int(clean_seed_str)
+                        seed = max(seed_min, min(seed, seed_max))
                     
                     world = Biomes(seed) #initialize world once I have the seed
                     game_state = 1
+
+            
     
         if game_state == 1:
             #put a timer that spawns mobs every so often
@@ -314,8 +322,18 @@ while True:
         pygame.draw.rect(screen, black, (draw_rect_x , draw_rect_y, 500, 60))        
         pygame.draw.rect(screen, gray, (draw_rect_x , draw_rect_y, 500, 60), 3)
 
+        frame_delay_underscore = 500
+        if current_time - last_updated_time >= frame_delay_underscore:
+            if seed_str and seed_str[-1] == '_':
+                seed_str = seed_str[:-1]
+            else:
+                seed_str += '_'
+            last_updated_time = current_time
         seed_text = game_font_small.render(seed_str, False, white)
         seed_text_rect = seed_text.get_rect(midleft = ( screen_width/2 - 240 , screen_height/2 + 120 ))
+        
+
+ 
         screen.blit(seed_text, seed_text_rect)
 
 
