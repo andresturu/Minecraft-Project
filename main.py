@@ -7,21 +7,26 @@ from utils import load_and_prep_player_image
 
 screen_width, screen_height = 1920 , 1280  #make sure tile_size multiplies into these cleanly
 biome_map_scalar =4 #biome_map will be x times as large as regular map, to allow scrolling background
-seed = randint(0,10000)
 
 pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
+game_state = 0 #starts in world creation screen
+game_font_large = pygame.font.Font('font/minecraft_font.ttf', 100)
+game_font_medium = pygame.font.Font('font/minecraft_font.ttf', 30)
+game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
+
 
 # Things to do?
-# #change forest block to be nicer
+# change forest block to be nicer
+# add swimming animation
 # Add plants to biomes
-# Add mobs (friendly and hostile)
+# Add mobs (friendly and hostile), have them spawn according to timed unique event
 # Add health bar
 # add enemy damage to health, and combat
 # Add sound fx and music
-# have the player set their seed
+# have the player set their seed, through multiple game states
 
 
 #plains, desert, water, snow, mountain, forest
@@ -36,12 +41,12 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         0: [pygame.transform.scale(pygame.image.load('graphics/water/deep_water_1.png').convert_alpha(), (tile_size, tile_size)), pygame.transform.scale(pygame.image.load('graphics/water/deep_water_2.png').convert_alpha(), (tile_size, tile_size)) ],   # Deep Water, want to alternate between these two
         1: pygame.transform.scale(pygame.image.load('graphics/blocks/desert_block.png').convert_alpha(), (tile_size, tile_size)),   # Desert
         2: pygame.transform.scale(pygame.image.load('graphics/blocks/grass_top.png').convert_alpha(), (tile_size, tile_size)),      # Grassland
-        3: pygame.transform.scale(pygame.image.load('graphics/blocks/oak_log_side.png').convert_alpha(), (tile_size, tile_size)),     # Forest
+        3: pygame.transform.scale(pygame.image.load('graphics/blocks/maple_leaves.png').convert_alpha(), (tile_size, tile_size)),     # Forest
         4: pygame.transform.scale(pygame.image.load('graphics/blocks/stone_generic.png').convert_alpha(), (tile_size, tile_size)), # Mountain
         5: pygame.transform.scale(pygame.image.load('graphics/blocks/snow.png').convert_alpha(), (tile_size, tile_size)) #Snow
     }
     
-    def __init__(self):
+    def __init__(self, seed):
         self.resolution_scale = 3200//Biomes.tile_size #make this larger to see smoother/larger biome regions
         self.water_index = 0
         
@@ -209,20 +214,53 @@ class Player(pygame.sprite.Sprite):
     def update(self):
         self.animation_state()
 
+class Hostile_mobs(pygame.sprite.Sprite):
+    
+    def __init__(self, type):
+        super().__init__()
+
+        self.type = type
 
 # def collision():
 #     if pygame.sprite.spritecollide(player.sprite, mob_group, False):
 #         return True
 #     else: return False
 
-world = Biomes()
+#Game state == 2
+frame_count = 0
+game_over = game_font_large.render('GAME OVER', False, (222,4,4))
+game_over_rect = game_over.get_rect(center = (screen_width/2, screen_height/2))
+
+#Game state == 0
+gray = (128,128,128)
+black =(0,0,0)
+white = (235,235,235)
+
+start_up_background = pygame.image.load('graphics/startup_screen_background.png').convert_alpha()
+start_up_background_rect = start_up_background.get_rect(center = (screen_width/2, screen_height/2))
+# start_up_background_width, start_up_background_height = start_up_background.get_size()
+
+create_new_world = game_font_medium.render(('Create New World'), False, white)
+create_new_world_rect = create_new_world.get_rect(center = (screen_width/2, 450))
+message1 = game_font_small.render(('Seed for the World Generator'), False, gray)
+message1_rect = message1.get_rect(midleft = (screen_width/2 - 244, screen_height/2 +76))
+message2 = game_font_small.render('Leave blank for a random seed', False, gray)
+message2_rect = message2.get_rect(midleft = (screen_width/2 - 244, screen_height/2 + 164))
+seed_str = '_'
+underscore_index = 0
+
+
+#Background
+world = None
 
 #Groups
 player = Player() #create a Player() sprite
 player_group = pygame.sprite.GroupSingle(player) #add the sprite to the GroupSingle group
 
-# player_group= pygame.sprite.GroupSingle() #creates an empty GroupSingle Instance
+# player_group= pygame.sprite.GroupSingle() #creates an empty container that can hold one sprite
 # player_group.add(Player()) #adds a single Player() sprite instance to the GroupSingle group called player
+
+hostile_mobs = pygame.sprite.Group() #creates an empty "bucket" that holds sprites
 
 while True:
     for event in pygame.event.get(): 
@@ -230,25 +268,86 @@ while True:
             pygame.quit() 
             exit() 
 
+        if game_state == 0:
+            keys = pygame.key.get_pressed()
+            
+            #remove underscore if it is present
+            if seed_str and seed_str[-1] == '_':
+                seed_str = seed_str[ :-1] #gets rid of last character
 
-    # Background
-    world.water_index += 0.015 
-    if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
-    world.draw_world(screen)
+            
+            #here add numbers to seed_str
+            
+            #here we update seed_str, maing sure to splice '_' at the end 
+            #in drawing below, we draw the seed_text based on seed_str
+
+            #animating the 'blinking' underscore
+            underscore_index += 0.2 
+            if int(underscore_index) >=2: underscore_index = 0
+            if int(underscore_index) < 1:
+                seed_str += '_'
+
+
+            if keys[pygame.K_RETURN] == True: 
+                if len(seed_str) ==1: #checks if player has left the seed blank
+                    seed = randint(1,10000)
+                else:
+                    seed = int(seed_str)
+                
+                world = Biomes(seed) #initialize world once I have the seed
+                game_state = 1
+                    
+
+                
+
+    if game_state == 0: #create new world screen
+        screen.fill((0,0,0))
+
+
+        screen.blit(start_up_background, start_up_background_rect)
+        screen.blit(create_new_world, create_new_world_rect)
+        screen.blit(message1, message1_rect)
+        screen.blit(message2, message2_rect)
+
+        draw_rect_x = screen_width/2 - 250
+        draw_rect_y = screen_height/2 + 90
+        pygame.draw.rect(screen, black, (draw_rect_x , draw_rect_y, 500, 60))        
+        pygame.draw.rect(screen, gray, (draw_rect_x , draw_rect_y, 500, 60), 3)
+
+        seed_text = game_font_small.render(seed_str, False, white)
+        seed_text_rect = seed_text.get_rect(midleft = ( screen_width/2 - 240 , screen_height/2 + 120 ))
+        screen.blit(seed_text, seed_text_rect)
+
+
+    elif game_state == 1: #game active screen
+        # Background
+        world.water_index += 0.015 
+        if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
+        world.draw_world(screen)
 
 
 
-  
-    #Player
-    player.update() #calls the update() method for player
-    player_group.draw(screen) #draws player sprite .image at its .rect
+    
+        #Player
+        player.update() #calls the update() method for player
+        player_group.draw(screen) #draws player sprite .image at its .rect
 
-    #Hostile Mobs
-    #mob_group.update() #calls the update() method for each enemy instance
-    #mob_group.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
+        #Hostile Mobs
+        #mob_group.update() #calls the update() method for each enemy instance
+        #mob_group.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
 
-    # screen.blit(player.half_heart, (30,30))
-    # screen.blit(player.full_heart, (70,70))
+        # screen.blit(player.half_heart, (30,30))
+        # screen.blit(player.full_heart, (70,70))
+    
+
+    elif game_state == 2: #game over screen, lasts a few seconds
+        frame_count += 1
+
+        screen.fill((0,0,0))
+        screen.blit(game_over, game_over_rect)
+        if frame_count >= 60 * 4: 
+            game_state = 0
+            frame_count = 0
 
 
     pygame.display.update() 
