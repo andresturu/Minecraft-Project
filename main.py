@@ -246,10 +246,12 @@ message1 = game_font_small.render(('Seed for the World Generator'), False, gray)
 message1_rect = message1.get_rect(midleft = (screen_width/2 - 244, screen_height/2 +76))
 message2 = game_font_small.render('Leave blank for a random seed', False, gray)
 message2_rect = message2.get_rect(midleft = (screen_width/2 - 244, screen_height/2 + 164))
-seed_str = '_'
+seed_str = ''
+cursor_visible = True
+frame_delay_underscore = 500
 seed_max = 1000000
 seed_min = 0
-underscore_index = 0
+
 
 
 #Background
@@ -277,26 +279,19 @@ while True:
             if event.type == pygame.KEYDOWN: #doing this makes sure only one character typed at a time (of same character )
                 
                 if event.unicode.isdigit(): # event.unicode returns string representation (a single character) of key that was pressed for example 'a' or '9, isdigit() is a Python method that checks if all characters in string are digits (0-9)
-                    if seed_str and seed_str[-1] == '_':
-                        seed_str = seed_str[:-1]
-                        seed_str += event.unicode
-                        seed_str += '_'
-                    else:
-                        seed_str += event.unicode
-                
-                if event.key == pygame.K_BACKSPACE: 
-                    if seed_str and seed_str[-1] == '_':
-                        seed_str = seed_str[:-1]
+                    seed_str += event.unicode
+    
+                elif event.key == pygame.K_BACKSPACE: 
                     seed_str = seed_str[ : -1]
 
                 if event.key == pygame.K_RETURN: 
-                    clean_seed_str = seed_str.rstrip('_')
-                    if len(clean_seed_str) ==0: #checks if player has left the seed blank
+                    if len(seed_str) ==0: #checks if player has left the seed blank
                         seed = randint(0,seed_max)
                     else:
-                        seed = int(clean_seed_str)
+                        seed = int(seed_str)
                         seed = max(seed_min, min(seed, seed_max))
                     
+                    print("Seed:", seed)
                     world = Biomes(seed) #initialize world once I have the seed
                     game_state = 1
 
@@ -322,20 +317,14 @@ while True:
         pygame.draw.rect(screen, black, (draw_rect_x , draw_rect_y, 500, 60))        
         pygame.draw.rect(screen, gray, (draw_rect_x , draw_rect_y, 500, 60), 3)
 
-        frame_delay_underscore = 500
         if current_time - last_updated_time >= frame_delay_underscore:
-            if seed_str and seed_str[-1] == '_':
-                seed_str = seed_str[:-1]
-            else:
-                seed_str += '_'
+            cursor_visible = not cursor_visible #not operator switches False to True and vice versa
             last_updated_time = current_time
-        seed_text = game_font_small.render(seed_str, False, white)
+
+        display_str = seed_str + ('_' if cursor_visible else '')
+        seed_text = game_font_small.render(display_str, False, white)
         seed_text_rect = seed_text.get_rect(midleft = ( screen_width/2 - 240 , screen_height/2 + 120 ))
-        
-
- 
         screen.blit(seed_text, seed_text_rect)
-
 
     elif game_state == 1: #game active screen
         # Background
