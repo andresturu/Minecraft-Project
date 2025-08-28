@@ -13,7 +13,7 @@ def generate_biome_map(width, height, seed, scale, octaves=4, persistence=0.5, l
     def get_biome(elevation):
         if elevation < -0.20:  
             return 0  # Deep water
-        elif elevation < -0.10:
+        elif elevation < -0.11:
             return 1  # Desert
         elif elevation < 0.10:
             return 2  # Grassland

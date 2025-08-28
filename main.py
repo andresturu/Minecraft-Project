@@ -12,7 +12,7 @@ pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
-game_state = 2 #starts in world creation screen
+game_state = 0 #starts in world creation screen
 game_font_large = pygame.font.Font('font/minecraft_font.ttf', 100)
 game_font_medium = pygame.font.Font('font/minecraft_font.ttf', 30)
 game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
