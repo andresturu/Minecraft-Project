@@ -23,7 +23,6 @@ game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
 # add swimming animation
 # Add plants to biomes
 # Add mobs (friendly and hostile), have them spawn according to timed unique event
-# Add health bar
 # add enemy damage to health, and combat
 # Add sound fx and music
 # have the player set their seed, through multiple game states
@@ -181,12 +180,17 @@ class Player(pygame.sprite.Sprite):
 
         self.image = Player.player_stills[self.direction] #just the initial surface, this will change later
         self.rect = self.image.get_rect(center = (screen_width/2, screen_height/2))
-    
-       
 
-    def find__and_draw_health(self, screen): #put into update() or keep separate?
-        if collision():
-            self.health -= 0.5 
+    def find_and_draw_health(self, screen): #
+        #if collision():
+        #    self.health -= 0.5 
+        
+        num_full_hearts = int(self.health)
+        for i in range(num_full_hearts):
+            screen.blit(player.full_heart, (30 + 40*i, 25))
+
+        if not self.health.is_integer(): # 9.0 is considered an integer
+            screen.blit(player.half_heart, (30 + 40 * num_full_hearts, 25))
         
 
     def animation_state(self): #standing, walking, swimming, getting hit, etc.
@@ -261,8 +265,6 @@ world = None
 player = Player() #create a Player() sprite
 player_group = pygame.sprite.GroupSingle(player) #add the sprite to the GroupSingle group
 
-# player_group= pygame.sprite.GroupSingle() #creates an empty container that can hold one sprite
-# player_group.add(Player()) #adds a single Player() sprite instance to the GroupSingle group called player
 
 hostile_mobs = pygame.sprite.Group() #creates an empty "bucket" that holds sprites
 
@@ -294,34 +296,36 @@ while True:
                     print("Seed:", seed)
                     world = Biomes(seed) #initialize world once I have the seed
                     game_state = 1
-
-            
+        
     
         if game_state == 1:
-            #put a timer that spawns mobs every so often
             pass
 
                 
 
     if game_state == 0: #create new world screen
+        #Background
         screen.fill((0,0,0))
-
-
         screen.blit(start_up_background, start_up_background_rect)
-        screen.blit(create_new_world, create_new_world_rect)
-        screen.blit(message1, message1_rect)
-        screen.blit(message2, message2_rect)
-
+        
+        #Text
+        screen.blit(create_new_world, create_new_world_rect) #text
+        screen.blit(message1, message1_rect) #text
+        screen.blit(message2, message2_rect) #text
+        
+        #Outlined box
         draw_rect_x = screen_width/2 - 250
         draw_rect_y = screen_height/2 + 90
         pygame.draw.rect(screen, black, (draw_rect_x , draw_rect_y, 500, 60))        
         pygame.draw.rect(screen, gray, (draw_rect_x , draw_rect_y, 500, 60), 3)
 
+        #Timer for blinking Underscore
         if current_time - last_updated_time >= frame_delay_underscore:
             cursor_visible = not cursor_visible #not operator switches False to True and vice versa
             last_updated_time = current_time
 
-        display_str = seed_str + ('_' if cursor_visible else '')
+        #Display seed text
+        display_str = seed_str + ('_' if cursor_visible else '') 
         seed_text = game_font_small.render(display_str, False, white)
         seed_text_rect = seed_text.get_rect(midleft = ( screen_width/2 - 240 , screen_height/2 + 120 ))
         screen.blit(seed_text, seed_text_rect)
@@ -332,29 +336,28 @@ while True:
         if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
         world.draw_world(screen)
 
-
-
     
         #Player
+        player.find_and_draw_health(screen) #processes damage, and draws health
         player.update() #calls the update() method for player
         player_group.draw(screen) #draws player sprite .image at its .rect
+        
 
         #Hostile Mobs
+        #if current_time - last_updated_time > 1000 * 10:
+            #Hostile_mobs.spawn()
+            #last_updated_time = current_time
         #mob_group.update() #calls the update() method for each enemy instance
         #mob_group.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
 
-        # screen.blit(player.half_heart, (30,30))
-        # screen.blit(player.full_heart, (70,70))
-    
 
-    elif game_state == 2: #game over screen, lasts a few seconds
-        frame_count += 1
-
+    elif game_state == 2: #game over screen, program this after adding health
         screen.fill((0,0,0))
         screen.blit(game_over, game_over_rect)
-        if frame_count >= 60 * 4: 
-            game_state = 0
-            frame_count = 0
+
+        #if current_time - last_updated_time >
+       
+        game_state = 0
 
 
     pygame.display.update() 

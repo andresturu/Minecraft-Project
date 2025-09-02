@@ -6,3 +6,6 @@ elif self.biome_map[y,x]== 5:
         self.background.blit(scaled_texture_surf, (x *self.tile_size, y *self.tile_size))
 
 #5: ['graphics/blocks/snow.png', 'graphics/blocks/snow_tree.png'] # Just worry about trees later
+
+# player_group= pygame.sprite.GroupSingle() #creates an empty container that can hold one sprite
+# player_group.add(Player()) #adds a single Player() sprite instance to the GroupSingle group called player
