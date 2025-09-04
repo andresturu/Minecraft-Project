@@ -407,6 +407,8 @@ while True:
             game_state = 2
             pygame.time.set_timer(game_over_reset, 5000, 1)
             player.health = 10 #reset health
+            hostile_mobs.empty()
+
         
 
 
