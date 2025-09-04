@@ -5,11 +5,15 @@ from map_generator import generate_biome_map
 from utils import load_and_prep_player_image
 
 
-screen_width, screen_height = 1920 , 1280  #make sure tile_size multiplies into these cleanly
-biome_map_scalar =4 #biome_map will be x times as large as regular map, to allow scrolling background
+SCREEN_WIDTH, SCREEN_HEIGHT = 1920 , 1280  #make sure TILE_SIZE multiplies into these cleanly
+BIOME_MAP_SCALAR =4 #biome_map will be x times as large as regular map, to allow scrolling background
+TILE_SIZE = 32
+SCREEN_WIDTH_TILES = SCREEN_WIDTH //TILE_SIZE #width of the visible screen, in tiles
+SCREEN_HEIGHT_TILES = SCREEN_HEIGHT //TILE_SIZE
+
 
 pygame.init()
-screen = pygame.display.set_mode((screen_width, screen_height))
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Minecraft 2D')
 clock = pygame.time.Clock()
 game_state = 0 #starts in world creation screen
@@ -30,40 +34,36 @@ game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
 
 #plains, desert, water, snow, mountain, forest
 class Biomes(): #making it inherit from sprite class is overkill unless I want to make each specific tile interactable with the player
-    
-    tile_size = 32
-    tile_width = screen_width //tile_size #width of the visible screen, in tiles
-    tile_height = screen_height //tile_size
 
 
     BIOME_TEXTURES = { #these don't match or make sense rn, change later
-        0: [pygame.transform.scale(pygame.image.load('graphics/water/deep_water_1.png').convert_alpha(), (tile_size, tile_size)), pygame.transform.scale(pygame.image.load('graphics/water/deep_water_2.png').convert_alpha(), (tile_size, tile_size)) ],   # Deep Water, want to alternate between these two
-        1: pygame.transform.scale(pygame.image.load('graphics/blocks/desert_block.png').convert_alpha(), (tile_size, tile_size)),   # Desert
-        2: pygame.transform.scale(pygame.image.load('graphics/blocks/grass_top.png').convert_alpha(), (tile_size, tile_size)),      # Grassland
-        3: pygame.transform.scale(pygame.image.load('graphics/blocks/maple_leaves.png').convert_alpha(), (tile_size, tile_size)),     # Forest
-        4: pygame.transform.scale(pygame.image.load('graphics/blocks/stone_generic.png').convert_alpha(), (tile_size, tile_size)), # Mountain
-        5: pygame.transform.scale(pygame.image.load('graphics/blocks/snow.png').convert_alpha(), (tile_size, tile_size)) #Snow
+        0: [pygame.transform.scale(pygame.image.load('graphics/water/deep_water_1.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)), pygame.transform.scale(pygame.image.load('graphics/water/deep_water_2.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)) ],   # Deep Water, want to alternate between these two
+        1: pygame.transform.scale(pygame.image.load('graphics/blocks/desert_block.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)),   # Desert
+        2: pygame.transform.scale(pygame.image.load('graphics/blocks/grass_top.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)),      # Grassland
+        3: pygame.transform.scale(pygame.image.load('graphics/blocks/maple_leaves.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)),     # Forest
+        4: pygame.transform.scale(pygame.image.load('graphics/blocks/stone_generic.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)), # Mountain
+        5: pygame.transform.scale(pygame.image.load('graphics/blocks/snow.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)) #Snow
     }
     
     def __init__(self, seed):
-        self.resolution_scale = 3200//Biomes.tile_size #make this larger to see smoother/larger biome regions
+        self.resolution_scale = 3200//TILE_SIZE #make this larger to see smoother/larger biome regions
         self.water_index = 0
         
-        self.biome_map = generate_biome_map(biome_map_scalar * Biomes.tile_width,biome_map_scalar * Biomes.tile_height, seed, self.resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
+        self.biome_map = generate_biome_map(BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES,BIOME_MAP_SCALAR * SCREEN_HEIGHT_TILES, seed, self.resolution_scale)#returns 2D NumPy array filled with integers 0 to 5 representing biomes
         self.static_background =  self.create_static_layer()    
         
-        self.static_background_draw_x = -(int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size)) #in tiles
-        self.static_background_draw_y = -(int(0.5 *(biome_map_scalar * screen_height - screen_height) / Biomes.tile_size))
-        self.static_background_draw_x_min = -(biome_map_scalar * Biomes.tile_width - Biomes.tile_width) +1
-        self.static_background_draw_y_min = -(biome_map_scalar * Biomes.tile_height - Biomes.tile_height) +1
+        self.static_background_draw_x = -(int(0.5 *(BIOME_MAP_SCALAR * SCREEN_WIDTH - SCREEN_WIDTH) / TILE_SIZE)) #in tiles
+        self.static_background_draw_y = -(int(0.5 *(BIOME_MAP_SCALAR * SCREEN_HEIGHT - SCREEN_HEIGHT) / TILE_SIZE))
+        self.static_background_draw_x_min = -(BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES - SCREEN_WIDTH_TILES) +1
+        self.static_background_draw_y_min = -(BIOME_MAP_SCALAR * SCREEN_HEIGHT_TILES - SCREEN_HEIGHT_TILES) +1
     
 
         #scroll_x should always be on left edge of vsisible game screen, scroll_y on the top edge of visible game screen
-        self.scroll_x = int(0.5 *(biome_map_scalar * screen_width - screen_width) / Biomes.tile_size) #calculates scroll_x 
-        self.scroll_y = int(0.5 *(biome_map_scalar * screen_height - screen_height) / Biomes.tile_size) #calculates scroll_y
+        self.scroll_x = int(0.5 *(BIOME_MAP_SCALAR * SCREEN_WIDTH - SCREEN_WIDTH) / TILE_SIZE) #calculates scroll_x 
+        self.scroll_y = int(0.5 *(BIOME_MAP_SCALAR * SCREEN_HEIGHT - SCREEN_HEIGHT) / TILE_SIZE) #calculates scroll_y
 
-        self.scroll_x_max = biome_map_scalar * Biomes.tile_width - Biomes.tile_width - 1 # max of how far the player can explore
-        self.scroll_y_max = biome_map_scalar * Biomes.tile_height - Biomes.tile_height - 1 # minus one accounts for the extra 1 tile of perimeter width and height
+        self.scroll_x_max = BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES - SCREEN_WIDTH_TILES - 1 # max of how far the player can explore
+        self.scroll_y_max = BIOME_MAP_SCALAR * SCREEN_HEIGHT_TILES - SCREEN_HEIGHT_TILES - 1 # minus one accounts for the extra 1 tile of perimeter width and height
         
         self.scroll_x_float = float(self.scroll_x)
         self.scroll_y_float = float(self.scroll_y)
@@ -104,15 +104,15 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.scroll_x = int(self.scroll_x_float) #int truncates down
         self.scroll_y = int(self.scroll_y_float)
         
-        self.tile_offset_x = self.scroll_x_float %1 * Biomes.tile_size #get number of pixels offsetted, to prevent jerkiness when moving diagonally
-        self.tile_offset_y = self.scroll_y_float %1 *Biomes.tile_size
+        self.tile_offset_x = self.scroll_x_float %1 * TILE_SIZE #get number of pixels offsetted, to prevent jerkiness when moving diagonally
+        self.tile_offset_y = self.scroll_y_float %1 *TILE_SIZE
 
     def create_static_layer(self):
         #no need for offsetting for blur, as the background is already completely rendered
-        static_background = pygame.Surface((biome_map_scalar * Biomes.tile_width* Biomes.tile_size, biome_map_scalar * Biomes.tile_height * Biomes.tile_size))
+        static_background = pygame.Surface((BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES* TILE_SIZE, BIOME_MAP_SCALAR * SCREEN_HEIGHT_TILES * TILE_SIZE))
         
-        for y in range (biome_map_scalar * Biomes.tile_height):
-            for x in range(biome_map_scalar * Biomes.tile_width):
+        for y in range (BIOME_MAP_SCALAR * SCREEN_HEIGHT_TILES):
+            for x in range(BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES):
                 
                 
 
@@ -122,22 +122,22 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
                     continue
                 else: 
                     scaled_texture_surf = Biomes.BIOME_TEXTURES[biome_id]
-                    static_background.blit(scaled_texture_surf, (x * Biomes.tile_size,y * Biomes.tile_size))
+                    static_background.blit(scaled_texture_surf, (x * TILE_SIZE,y * TILE_SIZE))
         return static_background
 
     def render_static_layer(self, screen): 
-        screen.blit(self.static_background, (self.static_background_draw_x * Biomes.tile_size, self.static_background_draw_y * Biomes.tile_size))
+        screen.blit(self.static_background, (self.static_background_draw_x * TILE_SIZE, self.static_background_draw_y * TILE_SIZE))
 
 
     def render_water(self, screen):
         perimeter_size = 1 #means one tile of space all around visible screen
 
-        for y in range (Biomes.tile_height + 2 *perimeter_size ):
-            for x in range (Biomes.tile_width + 2 *perimeter_size):     
+        for y in range (SCREEN_HEIGHT_TILES + 2 *perimeter_size ):
+            for x in range (SCREEN_WIDTH_TILES + 2 *perimeter_size):     
                 biome_id = self.biome_map[self.scroll_y+y - perimeter_size ,self.scroll_x +x - perimeter_size ]
 
-                draw_x = (x - perimeter_size) * Biomes.tile_size  - self.tile_offset_x
-                draw_y = (y - perimeter_size) * Biomes.tile_size - self.tile_offset_y 
+                draw_x = (x - perimeter_size) * TILE_SIZE  - self.tile_offset_x
+                draw_y = (y - perimeter_size) * TILE_SIZE - self.tile_offset_y 
 
             
                 if biome_id == 0: 
@@ -156,30 +156,30 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
 class Player(pygame.sprite.Sprite):
     
     player_stills = {
-        'west'  : load_and_prep_player_image('graphics/player/player_still_west.png', (64,64)), 
-        'east'  : load_and_prep_player_image('graphics/player/player_still_east.png', (64,64)), 
-        'north' : load_and_prep_player_image('graphics/player/player_still_north.png', (64,64)), 
-        'south' : load_and_prep_player_image('graphics/player/player_still_south.png', (64,64)) 
+        'west'  : load_and_prep_player_image('graphics/player/player_still_west.png', (64,64), (109,170,44)), 
+        'east'  : load_and_prep_player_image('graphics/player/player_still_east.png', (64,64), (109,170,44)), 
+        'north' : load_and_prep_player_image('graphics/player/player_still_north.png', (64,64), (109,170,44)), 
+        'south' : load_and_prep_player_image('graphics/player/player_still_south.png', (64,64), (109,170,44)) 
     }
     player_walks = {
-        'west' : [load_and_prep_player_image('graphics/player/player_walks_west1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_west2.png', (64,64)) ],
-        'east' : [load_and_prep_player_image('graphics/player/player_walks_east1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_east2.png', (64,64)) ],
-        'north': [load_and_prep_player_image('graphics/player/player_walks_north1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_north2.png', (64,64)) ],
-        'south': [load_and_prep_player_image('graphics/player/player_walks_south1.png', (64,64)) , load_and_prep_player_image('graphics/player/player_walks_south2.png', (64,64)) ]
+        'west' : [load_and_prep_player_image('graphics/player/player_walks_west1.png', (64,64), (109,170,44)) , load_and_prep_player_image('graphics/player/player_walks_west2.png', (64,64), (109,170,44)) ],
+        'east' : [load_and_prep_player_image('graphics/player/player_walks_east1.png', (64,64), (109,170,44)) , load_and_prep_player_image('graphics/player/player_walks_east2.png', (64,64), (109,170,44)) ],
+        'north': [load_and_prep_player_image('graphics/player/player_walks_north1.png', (64,64), (109,170,44)) , load_and_prep_player_image('graphics/player/player_walks_north2.png', (64,64), (109,170,44)) ],
+        'south': [load_and_prep_player_image('graphics/player/player_walks_south1.png', (64,64), (109,170,44)) , load_and_prep_player_image('graphics/player/player_walks_south2.png', (64,64), (109,170,44)) ]
     }
 
     def __init__(self):
         super().__init__()
         
         self.health = 10 #num of hearts player gets
-        self.full_heart = load_and_prep_player_image('graphics/player/full_heart.png', (48,48))
-        self.half_heart = load_and_prep_player_image('graphics/player/half_heart.png', (48,48))     
+        self.full_heart = load_and_prep_player_image('graphics/player/full_heart.png', (48,48), (109,170,44))
+        self.half_heart = load_and_prep_player_image('graphics/player/half_heart.png', (48,48), (109,170,44))     
 
         self.walk_index = 0
         self.direction = 'south'
 
         self.image = Player.player_stills[self.direction] #just the initial surface, this will change later
-        self.rect = self.image.get_rect(center = (screen_width/2, screen_height/2))
+        self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
     def find_and_draw_health(self, screen): #
         #if collision():
@@ -218,12 +218,43 @@ class Player(pygame.sprite.Sprite):
     def update(self):
         self.animation_state()
 
-class Hostile_mobs(pygame.sprite.Sprite):
-    
+class Hostile_mob(pygame.sprite.Sprite):
+    spawn_radius = (SCREEN_WIDTH_TILES //2)+ 24
+    mob_images = {
+        'zombie' : load_and_prep_player_image('graphics/hostile_mobs/zombie/zombie_idle.png', (128,128), (147, 187, 236))
+    }
+
+
     def __init__(self, type):
         super().__init__()
+        
+        self.draw_x, self.draw_y = Hostile_mob.random_spawn_pos() # randomly generate this based on spawn_radius
+        
 
-        self.type = type
+        self.image = Hostile_mob.mob_images[type]
+        self.rect = self.image.get_rect(center = (self.draw_x* TILE_SIZE, self.draw_y * TILE_SIZE))
+
+    def chase_player(self):
+        player_x, player_y = player.rect.center #in pixels, should always be the center of the screen
+        dx = (player_x - self.rect.centerx) 
+        dy = (player_y - self.rect.centery) 
+
+
+        speed = 1/200
+        self.rect.x += dx * speed
+        self.rect.y += dy * speed
+
+    @staticmethod
+    def random_spawn_pos():
+        random_x = randint(-Hostile_mob.spawn_radius, Hostile_mob.spawn_radius)
+        random_y = randint(-Hostile_mob.spawn_radius, Hostile_mob.spawn_radius)
+        x = SCREEN_WIDTH_TILES//2 + random_x
+        y = SCREEN_HEIGHT_TILES//2 + random_y
+        return x , y
+
+
+    def update(self):
+        self.chase_player()
 
 # def collision():
 #     if pygame.sprite.spritecollide(player.sprite, mob_group, False):
@@ -233,7 +264,7 @@ class Hostile_mobs(pygame.sprite.Sprite):
 #Game state == 2
 
 game_over = game_font_large.render('GAME OVER', False, (222,4,4))
-game_over_rect = game_over.get_rect(center = (screen_width/2, screen_height/2))
+game_over_rect = game_over.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
 #Game state == 0
 gray = (128,128,128)
@@ -241,18 +272,17 @@ black =(0,0,0)
 white = (235,235,235)
 
 start_up_background = pygame.image.load('graphics/startup_screen_background.png').convert_alpha()
-start_up_background_rect = start_up_background.get_rect(center = (screen_width/2, screen_height/2))
+start_up_background_rect = start_up_background.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 # start_up_background_width, start_up_background_height = start_up_background.get_size()
 
 create_new_world = game_font_medium.render(('Create New World'), False, white)
-create_new_world_rect = create_new_world.get_rect(center = (screen_width/2, 450))
+create_new_world_rect = create_new_world.get_rect(center = (SCREEN_WIDTH/2, 450))
 message1 = game_font_small.render(('Seed for the World Generator'), False, gray)
-message1_rect = message1.get_rect(midleft = (screen_width/2 - 244, screen_height/2 +76))
+message1_rect = message1.get_rect(midleft = (SCREEN_WIDTH/2 - 244, SCREEN_HEIGHT/2 +76))
 message2 = game_font_small.render('Leave blank for a random seed', False, gray)
-message2_rect = message2.get_rect(midleft = (screen_width/2 - 244, screen_height/2 + 164))
+message2_rect = message2.get_rect(midleft = (SCREEN_WIDTH/2 - 244, SCREEN_HEIGHT/2 + 164))
 seed_str = ''
 cursor_visible = True
-frame_delay_underscore = 500
 seed_max = 1000000
 seed_min = 0
 
@@ -265,8 +295,15 @@ world = None
 player = Player() #create a Player() sprite
 player_group = pygame.sprite.GroupSingle(player) #add the sprite to the GroupSingle group
 
-
 hostile_mobs = pygame.sprite.Group() #creates an empty "bucket" that holds sprites
+
+#Ttimers
+mob_spawn_event = pygame.USEREVENT + 1 #creates custom user event with unique int
+pygame.time.set_timer(mob_spawn_event, 4000) #pushes mob spawn event onto list every 5 seconds
+
+cursor_blink = pygame.USEREVENT + 2 
+pygame.time.set_timer(cursor_blink, 500)
+
 
 last_updated_time = pygame.time.get_ticks()
 while True:
@@ -278,14 +315,16 @@ while True:
             exit() 
 
         if game_state == 0: #create world screen
+            if event.type == cursor_blink:
+                cursor_visible = not cursor_visible
+            
             if event.type == pygame.KEYDOWN: #doing this makes sure only one character typed at a time (of same character )
-                
                 if event.unicode.isdigit(): # event.unicode returns string representation (a single character) of key that was pressed for example 'a' or '9, isdigit() is a Python method that checks if all characters in string are digits (0-9)
                     seed_str += event.unicode
     
                 elif event.key == pygame.K_BACKSPACE: 
                     seed_str = seed_str[ : -1]
-
+                
                 if event.key == pygame.K_RETURN: 
                     if len(seed_str) ==0: #checks if player has left the seed blank
                         seed = randint(0,seed_max)
@@ -299,7 +338,14 @@ while True:
         
     
         if game_state == 1:
-            pass
+    
+            if event.type == mob_spawn_event:
+                print('spawn enemies')
+                
+                for i in range(5):
+                    hostile_mobs.add(Hostile_mob(choice(['zombie', 'zombie']))) #add different mobs later
+                
+                
 
                 
 
@@ -314,20 +360,15 @@ while True:
         screen.blit(message2, message2_rect) #text
         
         #Outlined box
-        draw_rect_x = screen_width/2 - 250
-        draw_rect_y = screen_height/2 + 90
+        draw_rect_x = SCREEN_WIDTH/2 - 250
+        draw_rect_y = SCREEN_HEIGHT/2 + 90
         pygame.draw.rect(screen, black, (draw_rect_x , draw_rect_y, 500, 60))        
         pygame.draw.rect(screen, gray, (draw_rect_x , draw_rect_y, 500, 60), 3)
-
-        #Timer for blinking Underscore
-        if current_time - last_updated_time >= frame_delay_underscore:
-            cursor_visible = not cursor_visible #not operator switches False to True and vice versa
-            last_updated_time = current_time
 
         #Display seed text
         display_str = seed_str + ('_' if cursor_visible else '') 
         seed_text = game_font_small.render(display_str, False, white)
-        seed_text_rect = seed_text.get_rect(midleft = ( screen_width/2 - 240 , screen_height/2 + 120 ))
+        seed_text_rect = seed_text.get_rect(midleft = ( SCREEN_WIDTH/2 - 240 , SCREEN_HEIGHT/2 + 120 ))
         screen.blit(seed_text, seed_text_rect)
 
     elif game_state == 1: #game active screen
@@ -335,21 +376,16 @@ while True:
         world.water_index += 0.015 
         if world.water_index > len(Biomes.BIOME_TEXTURES[0]): world.water_index = 0
         world.draw_world(screen)
-
     
+        #Hostile Mobs
+        hostile_mobs.update() #calls the update() method for each enemy instance
+        hostile_mobs.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
+
         #Player
         player.find_and_draw_health(screen) #processes damage, and draws health
         player.update() #calls the update() method for player
         player_group.draw(screen) #draws player sprite .image at its .rect
         
-
-        #Hostile Mobs
-        #if current_time - last_updated_time > 1000 * 10:
-            #Hostile_mobs.spawn()
-            #last_updated_time = current_time
-        #mob_group.update() #calls the update() method for each enemy instance
-        #mob_group.draw(screen) #goes through every sprite in the group and draws their .image at their .rect
-
 
     elif game_state == 2: #game over screen, program this after adding health
         screen.fill((0,0,0))
