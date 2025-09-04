@@ -29,7 +29,7 @@ game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
 # Add mobs (friendly and hostile), have them spawn according to timed unique event
 # add enemy damage to health, and combat
 # Add sound fx and music
-# have the player set their seed, through multiple game states
+
 
 
 #plains, desert, water, snow, mountain, forest
@@ -182,8 +182,8 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
     def find_and_draw_health(self, screen): #
-        #if collision():
-        #    self.health -= 0.5 
+        if is_collision():
+            self.health -= 0.5 
         
         num_full_hearts = int(self.health)
         for i in range(num_full_hearts):
@@ -214,7 +214,6 @@ class Player(pygame.sprite.Sprite):
         else: #no buttons are pressed
             self.image = Player.player_stills[self.direction]
 
-
     def update(self):
         self.animation_state()
 
@@ -228,21 +227,35 @@ class Hostile_mob(pygame.sprite.Sprite):
     def __init__(self, type):
         super().__init__()
         
-        self.draw_x, self.draw_y = Hostile_mob.random_spawn_pos() # randomly generate this based on spawn_radius
+        spawn_x, spawn_y = Hostile_mob.random_spawn_pos() #in tiles, randomly generate this based on spawn_radius
         
+        self.true_x = spawn_x + (BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES - SCREEN_WIDTH_TILES)//2
+        self.true_y = spawn_y + (BIOME_MAP_SCALAR * SCREEN_HEIGHT_TILES - SCREEN_HEIGHT_TILES)//2
 
         self.image = Hostile_mob.mob_images[type]
-        self.rect = self.image.get_rect(center = (self.draw_x* TILE_SIZE, self.draw_y * TILE_SIZE))
+        self.rect = self.image.get_rect() #place holder 
 
     def chase_player(self):
-        player_x, player_y = player.rect.center #in pixels, should always be the center of the screen
-        dx = (player_x - self.rect.centerx) 
-        dy = (player_y - self.rect.centery) 
+   
+        true_player_x = world.scroll_x_float + SCREEN_WIDTH_TILES //2
+        true_player_y = world.scroll_y_float + SCREEN_HEIGHT_TILES //2
 
+        dx = true_player_x - self.true_x - 64/TILE_SIZE
+        dy = true_player_y - self.true_y - 64/TILE_SIZE
 
-        speed = 1/200
-        self.rect.x += dx * speed
-        self.rect.y += dy * speed
+        distance = (dx**2 + dy**2) **0.5 # creates vector for zombie to follow to the player
+        if distance != 0:
+            dx /= distance
+            dy /= distance
+
+        
+        speed = 0.05    
+        self.true_x += dx * speed
+        self.true_y += dy * speed
+
+    def update_rect(self): #
+        self.rect.topleft = ((self.true_x - world.scroll_x_float) * TILE_SIZE, (self.true_y - world.scroll_y_float) * TILE_SIZE)
+
 
     @staticmethod
     def random_spawn_pos():
@@ -255,14 +268,16 @@ class Hostile_mob(pygame.sprite.Sprite):
 
     def update(self):
         self.chase_player()
+        self.update_rect()
 
-# def collision():
-#     if pygame.sprite.spritecollide(player.sprite, mob_group, False):
-#         return True
-#     else: return False
+
+def is_collision():
+    if pygame.sprite.spritecollide(player, hostile_mobs, False):
+        return True
+    else: return False
+
 
 #Game state == 2
-
 game_over = game_font_large.render('GAME OVER', False, (222,4,4))
 game_over_rect = game_over.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
@@ -304,6 +319,9 @@ pygame.time.set_timer(mob_spawn_event, 4000) #pushes mob spawn event onto list e
 cursor_blink = pygame.USEREVENT + 2 
 pygame.time.set_timer(cursor_blink, 500)
 
+game_over_reset = pygame.USEREVENT + 3
+
+
 
 last_updated_time = pygame.time.get_ticks()
 while True:
@@ -335,19 +353,19 @@ while True:
                     print("Seed:", seed)
                     world = Biomes(seed) #initialize world once I have the seed
                     game_state = 1
+                    seed_str = '' #resets seed_str for next time
         
-    
         if game_state == 1:
     
             if event.type == mob_spawn_event:
-                print('spawn enemies')
-                
-                for i in range(5):
+                for i in range(3):
                     hostile_mobs.add(Hostile_mob(choice(['zombie', 'zombie']))) #add different mobs later
-                
-                
 
-                
+        if game_state == 2:
+            if event.type == game_over_reset:
+                game_state = 0
+                pygame.time.set_timer(game_over_reset, 0) #tells pygame to stop sending this timer event
+                     
 
     if game_state == 0: #create new world screen
         #Background
@@ -385,15 +403,19 @@ while True:
         player.find_and_draw_health(screen) #processes damage, and draws health
         player.update() #calls the update() method for player
         player_group.draw(screen) #draws player sprite .image at its .rect
+        if player.health <= 0:
+            game_state = 2
+            pygame.time.set_timer(game_over_reset, 5000, 1)
+            player.health = 10 #reset health
         
 
-    elif game_state == 2: #game over screen, program this after adding health
+
+
+    elif game_state == 2: #game over screen
+        
         screen.fill((0,0,0))
         screen.blit(game_over, game_over_rect)
 
-        #if current_time - last_updated_time >
-       
-        game_state = 0
 
 
     pygame.display.update() 
