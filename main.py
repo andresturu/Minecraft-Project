@@ -1,8 +1,11 @@
 import pygame
 from sys import exit
 from random import randint, choice
+
+import game_state_0
+import game_state_2
 from map_generator import generate_biome_map
-from utils import load_and_prep_player_image
+from utils import load_and_prep_player_image, is_collision
 
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1920 , 1280  #make sure TILE_SIZE multiplies into these cleanly
@@ -23,11 +26,12 @@ game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
 
 
 # Things to do?
+# check to see if how I set up game_state modules was clean or just really stupid
 # change forest block to be nicer
 # add swimming animation
 # Add plants to biomes
-# Add mobs (friendly and hostile), have them spawn according to timed unique event
-# add enemy damage to health, and combat
+# Add more hostile mobs, maybe friendly ones too
+# Improve combat, make character and mobs flash red if struck
 # Add sound fx and music
 
 
@@ -36,7 +40,7 @@ game_font_small = pygame.font.Font('font/minecraft_font.ttf', 22)
 class Biomes(): #making it inherit from sprite class is overkill unless I want to make each specific tile interactable with the player
 
 
-    BIOME_TEXTURES = { #these don't match or make sense rn, change later
+    BIOME_TEXTURES = { 
         0: [pygame.transform.scale(pygame.image.load('graphics/water/deep_water_1.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)), pygame.transform.scale(pygame.image.load('graphics/water/deep_water_2.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)) ],   # Deep Water, want to alternate between these two
         1: pygame.transform.scale(pygame.image.load('graphics/blocks/desert_block.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)),   # Desert
         2: pygame.transform.scale(pygame.image.load('graphics/blocks/grass_top.png').convert_alpha(), (TILE_SIZE, TILE_SIZE)),      # Grassland
@@ -151,8 +155,6 @@ class Biomes(): #making it inherit from sprite class is overkill unless I want t
         self.render_static_layer(screen)
         self.render_water(screen)
 
-
-
 class Player(pygame.sprite.Sprite):
     
     player_stills = {
@@ -178,12 +180,17 @@ class Player(pygame.sprite.Sprite):
         self.walk_index = 0
         self.direction = 'south'
 
+        self.damage_index = 0
+
         self.image = Player.player_stills[self.direction] #just the initial surface, this will change later
         self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
 
     def find_and_draw_health(self, screen): #
-        if is_collision():
+        
+        if is_collision(player, hostile_mobs) and self.damage_index == 0:
             self.health -= 0.5 
+        self.damage_index += 0.1
+        if self.damage_index >=1.0: self.damage_index = 0
         
         num_full_hearts = int(self.health)
         for i in range(num_full_hearts):
@@ -191,7 +198,25 @@ class Player(pygame.sprite.Sprite):
 
         if not self.health.is_integer(): # 9.0 is considered an integer
             screen.blit(player.half_heart, (30 + 40 * num_full_hearts, 25))
-        
+    
+    @staticmethod #for now at least
+    def attack():
+        attack_radius = 4 # in tiles
+        mobs_in_range = []
+        attack_range_rect = pygame.Rect((SCREEN_WIDTH_TILES//2 - attack_radius) * TILE_SIZE, (SCREEN_HEIGHT_TILES//2 - attack_radius) * TILE_SIZE, 20 *TILE_SIZE,20 * TILE_SIZE) #left, top, width, height
+
+        #current_mob_lst = hostile_mobs.sprites() #returns list with all mobs
+        for hostile_mob in hostile_mobs:
+            if attack_range_rect.collidepoint(hostile_mob.rect.center):
+                hostile_mob.health -= 1
+                
+                if hostile_mob.health == 0:
+                    hostile_mob.kill()
+       
+        # mobs_in_range = pygame.sprite.spritecollide(attack_range_rect, hostile_mobs, False)
+
+
+        #pygame.sprite.spritecollide(attack_range_rect, hostile_mobs, False)
 
     def animation_state(self): #standing, walking, swimming, getting hit, etc.
         keys = pygame.key.get_pressed()
@@ -227,6 +252,8 @@ class Hostile_mob(pygame.sprite.Sprite):
     def __init__(self, type):
         super().__init__()
         
+        self.health = 3
+
         spawn_x, spawn_y = Hostile_mob.random_spawn_pos() #in tiles, randomly generate this based on spawn_radius
         
         self.true_x = spawn_x + (BIOME_MAP_SCALAR * SCREEN_WIDTH_TILES - SCREEN_WIDTH_TILES)//2
@@ -234,6 +261,8 @@ class Hostile_mob(pygame.sprite.Sprite):
 
         self.image = Hostile_mob.mob_images[type]
         self.rect = self.image.get_rect() #place holder 
+
+
 
     def chase_player(self):
    
@@ -271,36 +300,16 @@ class Hostile_mob(pygame.sprite.Sprite):
         self.update_rect()
 
 
-def is_collision():
-    if pygame.sprite.spritecollide(player, hostile_mobs, False):
-        return True
-    else: return False
-
-
-#Game state == 2
-game_over = game_font_large.render('GAME OVER', False, (222,4,4))
-game_over_rect = game_over.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
+#I feel like this is super messy, even though it saved lines
 
 #Game state == 0
-gray = (128,128,128)
-black =(0,0,0)
-white = (235,235,235)
+gray, black, white = game_state_0.set_colors()
+start_up_background, start_up_background_rect = game_state_0.set_background(SCREEN_WIDTH, SCREEN_HEIGHT)
+create_new_world, create_new_world_rect, message1, message1_rect, message2, message2_rect = game_state_0.set_texts(game_font_small, game_font_medium, SCREEN_WIDTH, SCREEN_HEIGHT, white, gray)
+seed_str, cursor_visible, seed_max, seed_min = game_state_0.set_underscore()
 
-start_up_background = pygame.image.load('graphics/startup_screen_background.png').convert_alpha()
-start_up_background_rect = start_up_background.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
-# start_up_background_width, start_up_background_height = start_up_background.get_size()
-
-create_new_world = game_font_medium.render(('Create New World'), False, white)
-create_new_world_rect = create_new_world.get_rect(center = (SCREEN_WIDTH/2, 450))
-message1 = game_font_small.render(('Seed for the World Generator'), False, gray)
-message1_rect = message1.get_rect(midleft = (SCREEN_WIDTH/2 - 244, SCREEN_HEIGHT/2 +76))
-message2 = game_font_small.render('Leave blank for a random seed', False, gray)
-message2_rect = message2.get_rect(midleft = (SCREEN_WIDTH/2 - 244, SCREEN_HEIGHT/2 + 164))
-seed_str = ''
-cursor_visible = True
-seed_max = 1000000
-seed_min = 0
-
+#Game state == 2
+game_over, game_over_rect = game_state_2.set_game_over(game_font_large, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 
 #Background
@@ -312,7 +321,7 @@ player_group = pygame.sprite.GroupSingle(player) #add the sprite to the GroupSin
 
 hostile_mobs = pygame.sprite.Group() #creates an empty "bucket" that holds sprites
 
-#Ttimers
+#Unique Events and Timers
 mob_spawn_event = pygame.USEREVENT + 1 #creates custom user event with unique int
 pygame.time.set_timer(mob_spawn_event, 4000) #pushes mob spawn event onto list every 5 seconds
 
@@ -322,10 +331,7 @@ pygame.time.set_timer(cursor_blink, 500)
 game_over_reset = pygame.USEREVENT + 3
 
 
-
-last_updated_time = pygame.time.get_ticks()
 while True:
-    current_time = pygame.time.get_ticks()
     
     for event in pygame.event.get(): 
         if event.type == pygame.QUIT:  
@@ -356,7 +362,13 @@ while True:
                     seed_str = '' #resets seed_str for next time
         
         if game_state == 1:
-    
+            
+            #pygame.mouse.get_pressed() -> returns tuple of boolean integers (leftclick, middleclick, rightclick)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button ==1:
+                    player.attack()
+
+
             if event.type == mob_spawn_event:
                 for i in range(3):
                     hostile_mobs.add(Hostile_mob(choice(['zombie', 'zombie']))) #add different mobs later
@@ -369,25 +381,17 @@ while True:
 
     if game_state == 0: #create new world screen
         #Background
-        screen.fill((0,0,0))
-        screen.blit(start_up_background, start_up_background_rect)
-        
+        game_state_0.draw_background(screen, start_up_background, start_up_background_rect)
+
         #Text
-        screen.blit(create_new_world, create_new_world_rect) #text
-        screen.blit(message1, message1_rect) #text
-        screen.blit(message2, message2_rect) #text
+        game_state_0.draw_text(screen, create_new_world, create_new_world_rect, message1, message1_rect, message2, message2_rect)
         
         #Outlined box
-        draw_rect_x = SCREEN_WIDTH/2 - 250
-        draw_rect_y = SCREEN_HEIGHT/2 + 90
-        pygame.draw.rect(screen, black, (draw_rect_x , draw_rect_y, 500, 60))        
-        pygame.draw.rect(screen, gray, (draw_rect_x , draw_rect_y, 500, 60), 3)
+        game_state_0.draw_outline(screen, SCREEN_WIDTH, SCREEN_HEIGHT, black, gray)
 
         #Display seed text
-        display_str = seed_str + ('_' if cursor_visible else '') 
-        seed_text = game_font_small.render(display_str, False, white)
-        seed_text_rect = seed_text.get_rect(midleft = ( SCREEN_WIDTH/2 - 240 , SCREEN_HEIGHT/2 + 120 ))
-        screen.blit(seed_text, seed_text_rect)
+        game_state_0.draw_seed_text(screen, seed_str, game_font_small, white, cursor_visible, SCREEN_WIDTH, SCREEN_HEIGHT)
+
 
     elif game_state == 1: #game active screen
         # Background
@@ -411,14 +415,8 @@ while True:
 
         
 
-
-
     elif game_state == 2: #game over screen
-        
-        screen.fill((0,0,0))
-        screen.blit(game_over, game_over_rect)
-
-
+        game_state_2.show_game_over(screen, game_over, game_over_rect)
 
     pygame.display.update() 
     clock.tick(60)

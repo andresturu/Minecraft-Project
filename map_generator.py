@@ -31,7 +31,6 @@ def generate_biome_map(width, height, seed, scale, octaves=4, persistence=0.5, l
     y_offset = np.random.uniform(0, 10000)
     
     biome_map = np.zeros((height, width), dtype=np.uint8) #creates 2D NumPy array, filled with zeros, height # of rows and width # of columns, each element in the array is an 8-bit unsigned integer (0-255)
-    print(height,width)
     for y in range(height):
         for x in range(width):
            
@@ -45,5 +44,4 @@ def generate_biome_map(width, height, seed, scale, octaves=4, persistence=0.5, l
             
             biome_map[y, x] = get_biome(elevation)
     
-    #print(biome_map) 
     return biome_map 
